@@ -5,6 +5,7 @@
 install dev dependancies
 
 '''bash
+virtualenv venv
 pip install -e .[dev]
 '''
 

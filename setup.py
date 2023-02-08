@@ -7,6 +7,7 @@ setup(
     py_modules=['makerprint'],
     install_requires=[
         "pyserial",
+        "logging",
     ],
     extras_require={
         'dev': [
