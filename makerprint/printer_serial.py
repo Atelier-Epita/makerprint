@@ -81,11 +81,8 @@ class PrinterSerial():
 
     def write_file(self, filename: str, file_content: bytes):
         self.send(commands.BEGIN_WRITE + " " + filename)
-        time.sleep(0.1)
         ret = self.recv()
         print(ret)
-        # if ret[0] != "Writing to file: " + filename:
-        #     return ret
 
         self.send_raw(file_content)
 
