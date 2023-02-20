@@ -1,4 +1,16 @@
 from . import printer_serial, commands
+import logging
+import sys
+
+# log to file and stdout
+logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("makerprint.log", mode="w")
+    ],
+    level=logging.DEBUG,
+)
+
 
 ser = printer_serial.PrinterSerial()
 ser.send(commands.INIT_SD_CARD)
