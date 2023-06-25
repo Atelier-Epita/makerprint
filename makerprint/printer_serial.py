@@ -8,7 +8,7 @@ except ImportError:
     logging.error("pyserial is not installed. Please install it with pip.")
     exit()
 
-from . import commands
+from .commands import *
 
 
 baudrates = [115200, 57600, 38400, 19200, 9600]
@@ -122,30 +122,30 @@ class PrinterSerial():
         """
         Initialize the SD card of the printer.
         """
-        self.send(commands.INIT_SD_CARD)
+        self.send(INIT_SD_CARD)
         return self.recv()
 
     def list_sd_card(self):
         """
         List the files on the SD card of the printer.
         """
-        self.send(commands.LIST_SD_CARD)
+        self.send(LIST_SD_CARD)
         return self.recv()
 
     def select_sd_card(self, filename):
-        self.send(commands.SELECT_SD_CARD + " " + filename)
+        self.send(SELECT_SD_CARD + " " + filename)
         return self.recv()
 
     def start_print(self):
-        self.send(commands.START_PRINT)
+        self.send(START_PRINT)
         return self.recv()
 
     def write_file(self, filename: str, file_content: bytes):
-        self.send(commands.BEGIN_WRITE + " " + filename)
+        self.send(BEGIN_WRITE + " " + filename)
         ret = self.recv()
         print(ret)
 
         self.send_raw(file_content)
 
-        self.send(commands.END_WRITE + " " + filename)
+        self.send(END_WRITE + " " + filename)
         return self.recv()

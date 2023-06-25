@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "pyserial",
         "logging",
+        "flask",
     ],
     extras_require={
         'dev': [

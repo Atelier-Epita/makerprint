@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>MakerPrint</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+
+<body>
+
+    <!-- left side Menu -->
+    <div class="menu">
+        <div class="menu-logo">
+            <img src="img/logo.png" alt="logo">
+        </div>
+
+        <!-- list of available printers -->
+        <div class="menu-printers">
+            <h3>Printers</h3>
+            <ul>
+                {{ printers }}
+            </ul>
+        </div>
+
+        <!-- 
+            list of available files for the current printer
+            this list is updated when a printer is selected
+            else, it is empty
+
+            not sure about this one
+        -->
+        <div class="menu-files">
+            <h3>Files</h3>
+            <ul>
+                {{ files }}
+            </ul>
+        </div>
+
+
+    <!-- print stat,   -->
+
+</body>
+
+
+</html>
