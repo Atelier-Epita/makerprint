@@ -5,43 +5,42 @@
 <head>
     <meta charset="UTF-8">
     <title>MakerPrint</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 
 
 <body>
-
-    <!-- left side Menu -->
+    <!-- Menu -->
     <div class="menu">
-        <div class="menu-logo">
-            <img src="img/logo.png" alt="logo">
-        </div>
+        <h1>MakerPrint</h1>
 
-        <!-- list of available printers -->
-        <div class="menu-printers">
-            <h3>Printers</h3>
-            <ul>
+        <div class="menu-left-bar">
+            <img src="static/logo.png" alt="MakerPrint">
+
+            <!-- list of available printers -->
+            <div class="menu-printers">
+                <h3>Printers</h3>
+                found {{ printer_count }} printers
                 {{ printers }}
-            </ul>
+            </div>
+
+            <!-- 
+                list of available files for the current printer
+                list of available files for the current printer
+                this list is updated when a printer is selected
+                else, it is empty
+
+                not sure about this one
+            -->
+            <div class="menu-files">
+                <h3>Files</h3>
+                found {{ file_count }} files
+                <ul>
+                    {{ files }}
+                </ul>
+            </div>
         </div>
-
-        <!-- 
-            list of available files for the current printer
-            this list is updated when a printer is selected
-            else, it is empty
-
-            not sure about this one
-        -->
-        <div class="menu-files">
-            <h3>Files</h3>
-            <ul>
-                {{ files }}
-            </ul>
-        </div>
-
-
-    <!-- print stat,   -->
-
+    </div>
 </body>
 
 

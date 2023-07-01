@@ -14,11 +14,18 @@ pip install -e .[dev]
 ## Run the server
 
 '''bash
-python -m makerprint
+cd makerprint
+flask run
 '''
+
+make sure to change the settings in `makerprint/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
 
 ## Run the tests
 
 '''bash
 pytest
 '''
+
+## Overview
+This is an early version of the UÏ, it is not yet functional.
+![overview](ressources/2023-07-01-16-15-19.png)

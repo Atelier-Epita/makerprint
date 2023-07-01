@@ -7,8 +7,8 @@ setup(
     py_modules=['makerprint'],
     install_requires=[
         "pyserial",
-        "logging",
         "flask",
+        "environs",
     ],
     extras_require={
         'dev': [
