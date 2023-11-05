@@ -4,8 +4,8 @@
 ## Dev Installation
 install dev dependancies
 
-'''bash
+```bash
 virtualenv venv
 pip install -e .[dev]
-'''
+```
 
