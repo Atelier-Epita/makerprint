@@ -6,25 +6,25 @@
 
 install dev dependancies
 
-'''bash
+```bash
 virtualenv venv
 pip install -e .[dev]
-'''
+```
 
 ## Run the server
 
-'''bash
+```bash
 cd makerprint
 flask run
-'''
+```
 
 make sure to change the settings in `makerprint/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
 
 ## Run the tests
 
-'''bash
+```bash
 pytest
-'''
+```
 
 ## Overview
 This is an early version of the UÏ, it is not yet functional.

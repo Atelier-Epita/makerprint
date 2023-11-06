@@ -4,6 +4,7 @@ import sys
 
 import flask
 from environs import Env
+from markupsafe import Markup
 
 from . import printer_serial
 from .commands import *
@@ -15,17 +16,14 @@ env.read_env("makerprint.env")
 LOGPATH = env("LOGPATH", "makerprint.log")
 GCODEFOLDER = env("GCODEFOLDER", "/home/pi/3dprinter/")
 
-
 # log to file and stdout
 logging.basicConfig(
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOGPATH, mode="w")
+        logging.FileHandler(LOGPATH, mode="w"),
     ],
     level=logging.DEBUG,
 )
-
-app = flask.Flask("makerprint")
 
 list_ports = printer_serial.list_ports()
 list_files = []
@@ -47,11 +45,14 @@ def update_list_files():
     logging.debug(f"Found files: {list_files}")
 
 
+app = flask.Flask("makerprint")
+
 """
 /
 
 The main page of the web interface.
 """
+
 
 @app.route("/")
 def index():
@@ -63,13 +64,13 @@ def index():
     # just some dummy data
     list_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"]
 
-    printers = []
     # create a button for each port that redirects to /printer/<port_index>
-    for i, port in enumerate(list_ports):
-        printers.append(PRINTER_BUTTON.format(i=i, port=port))
-
+    printers = [
+        PRINTER_BUTTON.format(i=i, port=port) for i, port in enumerate(list_ports)
+    ]
     printers = "\n".join(printers)
-    printers = flask.Markup(printers)
+    logging.debug(printers)
+    printers = Markup(printers)
 
     files = []
     # create a button for each file that redirects to /file/<file_name>
@@ -77,7 +78,7 @@ def index():
         files.append(FILE_BUTTON.format(name=filename))
 
     files = "\n".join(files)
-    files = flask.Markup(files)
+    files = Markup(files)
 
     return flask.render_template(
         "index.html",
@@ -94,6 +95,7 @@ def index():
 The page for a specific printer.
 """
 
+
 @app.route("/printer/<int:port_index>")
 def printer(port_index):
     global list_ports
@@ -105,13 +107,14 @@ def printer(port_index):
     port = list_ports[port_index]
 
     # TODO connect serial if not already connected
-    
 
     # TODO render template and so on
-    return flask.jsonify({
-        "port": port,
-        "status": "connected",
-    })
+    return flask.jsonify(
+        {
+            "port": port,
+            "status": "connected",
+        }
+    )
 
 
 """
@@ -120,6 +123,7 @@ def printer(port_index):
 The page for a specific file.
 maybe a preview of the gcode file + some stats ?
 """
+
 
 @app.route("/file/<string:file_name>")
 def file_content(file_name):
@@ -130,12 +134,34 @@ def file_content(file_name):
         return flask.redirect("/")
 
     # TODO render template and so on
-    return flask.jsonify({
-        "file_name": file_name,
-        "status": "ok",
-    })
+    return flask.jsonify(
+        {
+            "file_name": file_name,
+            "status": "ok",
+        }
+    )
 
 
+"""
+/printer/command
+
+Send a command to the printer.
+sent as a submit form with the following parameters:
+- command: the command to send
+"""
+
+@app.route("/printer/command", methods=["POST"])
+def printer_command():
+    command = flask.request.form.get("command")
+    logging.debug(f"Received command: {command}")
+
+    # TODO send command to printer
+    return flask.jsonify(
+        {
+            "command": command,
+            "status": "ok",
+        }
+    )
 
 # basic operations on the printer
 # ser = printer_serial.PrinterSerial()

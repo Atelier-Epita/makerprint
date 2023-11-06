@@ -1,68 +1,82 @@
-
 body {
     padding: 0;
+    margin: 0;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 16px;
-    background-color: #333;
-    color: #fff;
+    background-color: #f4f4f4;
+    color: #333333;
 }
 
-/* menu */
 .menu {
-    width: 100%;
-    height: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 20px 0;
+    gap: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
-
 
 .menu h1 {
-    text-align: center;
     margin: 0;
     padding: 0;
-    font-size: 40px;
+    text-align: center;
 }
 
+.console,
 .menu-left-bar {
-    padding: 5px;
-    width: 20%;
-    height: 100%;
-    float: left;
-    border: 1px solid #000;
+    flex: 1;
+    justify-content: left;
+    border: 2px solid #cccccc;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+}
+
+.console-output-container,
+.console-input-container {
+    display: flex;
+    margin: 10px 0;
+    padding: 10px;
+    justify-content: left;
+    overflow: auto;
+    gap: 10px;
+    min-height: 100px;
+    background-color: #f4f4f4;
 }
 
 .menu-left-bar img {
     width: 100%;
 }
 
-/* menu-printers */
-.menu-printers {
-    overflow: hidden;
-    width: 100%;
-}
-
-.menu-printers button {
-    display: block;
-    width: 100%;
-    padding: 14px 16px;
-    margin: 2px 0px;
-    border: 1px solid #333;
-    background-color: #444;
-    color: #fff;
-}
-
-.menu-printers button:hover {
-    background-color: #ffd900;
-}
-
-/* menu-files */
+.menu-printers,
 .menu-files {
-    overflow: hidden;
     width: 100%;
+    margin-top: 20px;
 }
 
+.menu-printers button,
 .menu-files button {
     display: block;
     width: 100%;
     padding: 14px 16px;
-    margin: 0;
+    margin: 10px 0;
     border: none;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #333333;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-printers button:hover,
+.menu-files button:hover {
+    background-color: #E6B513;
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

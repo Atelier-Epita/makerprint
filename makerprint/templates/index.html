@@ -12,9 +12,8 @@
 <body>
     <!-- Menu -->
     <div class="menu">
-        <h1>MakerPrint</h1>
-
         <div class="menu-left-bar">
+            <h1>MakerPrint</h1>
             <img src="static/logo.png" alt="MakerPrint">
 
             <!-- list of available printers -->
@@ -40,6 +39,24 @@
                 </ul>
             </div>
         </div>
+
+        <div class="console">
+            <div class="console-output">
+                <h3>Console output</h3>
+                <div class="console-output-container">
+                    {{ console_output }}
+                </div>
+            </div>
+            <div class="console-input">
+                <h3>Console input</h3>
+                <div class="console-input-container">
+                    {{ console_input }}
+                </div>
+                <form action="/printer/command" method="post">
+                    <input type="text" name="command" id="command">
+                    <input type="submit" value="Send">
+                </form>
+            </div>
     </div>
 </body>
 
