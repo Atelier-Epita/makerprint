@@ -34,28 +34,31 @@ body {
     background-color: #ffffff;
 }
 
+/* TOFIX line stuff */
 .console-output-container,
 .console-input-container {
-    display: flex;
-    margin: 10px 0;
-    padding: 10px;
-    justify-content: left;
+    flex-direction: column;
+    padding-left: 10px;
     overflow: auto;
-    gap: 10px;
-    min-height: 100px;
+    height: 150px;
     background-color: #f4f4f4;
+    margin: 0;
 }
 
 .menu-left-bar img {
     width: 100%;
 }
 
+.console-clear,
+.menu-refresh,
 .menu-printers,
 .menu-files {
+    margin-top: auto;
     width: 100%;
-    margin-top: 20px;
 }
 
+.console-clear button,
+.menu-refresh button,
 .menu-printers button,
 .menu-files button {
     display: block;
@@ -64,7 +67,7 @@ body {
     margin: 10px 0;
     border: none;
     border-radius: 5px;
-    background-color: #ffffff;
+    background-color: #f4f4f4;
     color: #333333;
     text-align: center;
     text-decoration: none;
@@ -73,10 +76,12 @@ body {
     transition: background-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.2s;
 }
 
+.console-clear button:hover,
+.menu-refresh button:hover,
 .menu-printers button:hover,
 .menu-files button:hover {
     background-color: #E6B513;
     color: #ffffff;
-    transform: scale(1.1);
+    transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

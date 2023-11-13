@@ -34,13 +34,16 @@
             <div class="menu-files">
                 <h3>Files</h3>
                 found {{ file_count }} files
-                <ul>
-                    {{ files }}
-                </ul>
+                {{ files }}
+            </div>
+
+            <div class="menu-refresh">
+                <button type="button" onclick="window.location.href='/printer/refresh'">Refresh</button>
             </div>
         </div>
 
         <div class="console">
+            <h3>Connected to {{ printer_port }} </h3>
             <div class="console-output">
                 <h3>Console output</h3>
                 <div class="console-output-container">
@@ -56,6 +59,9 @@
                     <input type="text" name="command" id="command">
                     <input type="submit" value="Send">
                 </form>
+            </div>
+            <div class="console-clear">
+                <button type="button" onclick="window.location.href='/printer/clear'">Clear</button>
             </div>
     </div>
 </body>
