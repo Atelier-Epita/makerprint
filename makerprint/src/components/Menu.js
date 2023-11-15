@@ -2,6 +2,9 @@ import React from 'react';
 import Printer from './Printer';
 import File from './File';
 import { useUserContext } from '../UserContext';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000';
 
 function Menu() {
     const [state, dispatch] = useUserContext();
@@ -20,7 +23,15 @@ function Menu() {
     });
 
     const onRefresh = () => {
-        window.location.reload();
+        axios.get(`${API_URL}/printer/list`)
+        .then((res) => {
+            dispatch({ type: 'SET_PRINTERS', payload: res.data });
+        })
+
+        axios.get(`${API_URL}/printer/files`)
+        .then((res) => {
+            dispatch({ type: 'SET_FILES', payload: res.data });
+        })
     }
 
     return (
