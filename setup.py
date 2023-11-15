@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "pyserial",
         "flask",
+        "flask-cors",
         "environs",
     ],
     extras_require={

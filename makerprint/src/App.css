@@ -7,7 +7,7 @@ body {
     color: #333333;
 }
 
-.menu {
+.app {
     display: flex;
     justify-content: center;
     padding: 20px;
@@ -17,7 +17,7 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.menu h1 {
+.app h1 {
     margin: 0;
     padding: 0;
     text-align: center;
@@ -34,7 +34,6 @@ body {
     background-color: #ffffff;
 }
 
-/* TOFIX line stuff */
 .console-output-container,
 .console-input-container {
     flex-direction: column;
@@ -49,7 +48,6 @@ body {
     width: 100%;
 }
 
-.console-clear,
 .menu-refresh,
 .menu-printers,
 .menu-files {
@@ -57,7 +55,6 @@ body {
     width: 100%;
 }
 
-.console-clear button,
 .menu-refresh button,
 .menu-printers button,
 .menu-files button {

@@ -14,8 +14,7 @@ pip install -e .[dev]
 ## Run the server
 
 ```bash
-cd makerprint
-flask run
+flask --app makerprint-api/api.py run
 ```
 
 make sure to change the settings in `makerprint/makerprint.env` to match your setup (logs location, gcode files locations, and so on).

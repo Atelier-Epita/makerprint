@@ -8,10 +8,7 @@ except ImportError:
     logging.error("pyserial is not installed. Please install it with pip.")
     exit()
 
-from .commands import *
-
-
-baudrates = [115200, 57600, 38400, 19200, 9600]
+from .const import *
 
 
 def connect(port="/dev/ttyUSB0", timeout=1, baudrate=None):
@@ -19,7 +16,7 @@ def connect(port="/dev/ttyUSB0", timeout=1, baudrate=None):
         logging.info("Connecting to printer on port %s at %d baud", port, baudrate)
         return serial.Serial(port, baudrate, timeout=timeout)
 
-    for baudrate in baudrates:
+    for baudrate in BAUDRATES:
         try:
             ser = serial.Serial(port, baudrate, timeout=timeout)
             logging.info("Connected to printer on port %s at %d baud", port, baudrate)
