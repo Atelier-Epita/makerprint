@@ -15,6 +15,19 @@ env.read_env("makerprint.env")
 LOGPATH = env("LOGPATH", "makerprint.log")
 GCODEFOLDER = env("GCODEFOLDER", "/home/pi/3dprinter/")
 
+# create gcode folder if it does not exist
+if not os.path.exists(GCODEFOLDER):
+    os.mkdir(GCODEFOLDER)
+
+# log to file and stdout
+logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(LOGPATH, mode="w"),
+    ],
+    level=logging.DEBUG,
+)
+
 connected_printers = {}
 app = flask.Flask("makerprint")
 CORS(app)
@@ -23,7 +36,7 @@ CORS(app)
 @app.route("/printer/list")
 def list_printers():
     ports = printer_serial.list_ports()
-    return flask.jsonify({"printers": ports})
+    return ports
 
 
 @app.route("/printer/connect", methods=["POST"])
@@ -61,9 +74,7 @@ def list_files():
         os.mkdir(GCODEFOLDER)
 
     # list all files ending with .gcode
-    files = [f for f in os.listdir(GCODEFOLDER) if f.endswith(".gcode")]
-    logging.debug(f"Found files: {files}")
-    return files
+    return [f for f in os.listdir(GCODEFOLDER) if f.endswith(".gcode")]
 
 
 @app.route("/file/upload", methods=["POST"])
@@ -80,20 +91,3 @@ def upload_file():
 
     file.save(os.path.join(GCODEFOLDER, file.filename))
     return flask.jsonify({"success": True})
-
-
-if __name__ == "__main__":
-    # create gcode folder if it does not exist
-    if not os.path.exists(GCODEFOLDER):
-        os.mkdir(GCODEFOLDER)
-
-    # log to file and stdout
-    logging.basicConfig(
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(LOGPATH, mode="w"),
-        ],
-        level=logging.DEBUG,
-    )
-
-    app.run("127.0.0.1", port=5000)

@@ -39,6 +39,13 @@ export const UserProvider = ({ children }) => {
     const storedState = JSON.parse(localStorage.getItem("userState")) || initialState;
     const [state, dispatch] = useReducer(reducer, storedState);
 
+    if (state.printerName != null) {
+        if (state.printers.length > 0)
+            dispatch({ type: ACTIONS.SET_PRINTER_NAME, payload: state.printers });
+        else
+            state.printerName = null;
+    }
+
     useEffect(() => {
         // Store the state in localStorage whenever it changes
         localStorage.setItem("userState", JSON.stringify(state));

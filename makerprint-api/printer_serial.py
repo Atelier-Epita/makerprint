@@ -4,6 +4,7 @@ import threading
 
 try:  # pyserial
     import serial
+    import serial.tools.list_ports
 except ImportError:
     logging.error("pyserial is not installed. Please install it with pip.")
     exit()
@@ -29,11 +30,7 @@ def connect(port="/dev/ttyUSB0", timeout=1, baudrate=None):
 
 
 def list_ports():
-    import serial.tools.list_ports
-
-    ports = [device.device for device in serial.tools.list_ports.comports()]
-    logging.debug(f"Found ports: {ports}")
-    return ports
+    return [device.device for device in serial.tools.list_ports.comports()]
 
 
 class PrinterSerial:
