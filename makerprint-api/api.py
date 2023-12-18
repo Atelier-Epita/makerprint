@@ -64,6 +64,8 @@ def printer_command():
         ser = printer_serial.connect(port)
         if ser is None:
             flask.abort(400, "Could not connect to printer")
+        
+        connected_printers[port] = ser
 
     printer = connected_printers[port]
     printer.send(command)
