@@ -36,15 +36,20 @@ const reducer = (state, action) => {
 const UserContext = createContext();
 export const useUserContext = () => useContext(UserContext);
 export const UserProvider = ({ children }) => {
+    // localStorage.clear(); // Uncomment to clear localStorage
+
     const storedState = JSON.parse(localStorage.getItem("userState")) || initialState;
     const [state, dispatch] = useReducer(reducer, storedState);
 
-    if (state.printerName != null) {
-        if (state.printers.length > 0)
-            dispatch({ type: ACTIONS.SET_PRINTER_NAME, payload: state.printers });
-        else
-            state.printerName = null;
+    useEffect(() => {
+        if (state.printerName != null) {
+            if (state.printers.length > 0)
+                dispatch({ type: ACTIONS.SET_PRINTER_NAME, payload: state.printers });
+            else
+                state.printerName = null;
+        }
     }
+    , [state.printers]);
 
     useEffect(() => {
         // Store the state in localStorage whenever it changes

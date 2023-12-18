@@ -1,10 +1,10 @@
 import React from 'react';
 import axios from 'axios';
-import { useUserContext } from '../UserContext';
+import { useUserContext, ACTIONS} from '../UserContext';
 import Printers from './Printer';
 import Files from './File';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://10.69.88.6:5000';
 
 function Menu() {
     const [state, dispatch] = useUserContext();
@@ -12,12 +12,12 @@ function Menu() {
     const onRefresh = () => {
         axios.get(`${API_URL}/printer/list`)
             .then((res) => {
-                dispatch({ type: 'SET_PRINTERS', payload: res.data });
+                dispatch({ type: ACTIONS.SET_PRINTERS, payload: res.data });
             })
 
         axios.get(`${API_URL}/file/list`)
             .then((res) => {
-                dispatch({ type: 'SET_FILES', payload: res.data });
+                dispatch({ type: ACTIONS.SET_FILES, payload: res.data });
             })
     }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useUserContext } from '../UserContext';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://10.69.88.6:5000';
 const GCODE = {
     LIST_SD_CARD: 'M20',
     INIT_SD_CARD: 'M21',
@@ -39,7 +39,10 @@ function Console() {
         e.preventDefault();
         axios.post(
             `${API_URL}/printer/command`,
-            { command: formData.command, port: state.printerName }
+            {
+                command: formData.command,
+                port: state.printerName
+            },
         )
         .then((res) => {
             console.log(res);
@@ -50,7 +53,7 @@ function Console() {
     };
 
     // update console logs when switching printers
-    useEffect(() => { }, [state.printerName]);
+    // useEffect(() => { }, [state.printerName]);
 
     return (
         <div className="console">
