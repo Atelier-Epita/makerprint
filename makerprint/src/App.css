@@ -44,17 +44,23 @@ body {
     margin: 0;
 }
 
-.menu-left-bar img {
-    width: 100%;
+.menu-files-upload {
+    margin-top: 20px;
 }
 
+.menu-files-list {
+    border-style: dashed;
+}
+
+.menu-files,
 .menu-refresh,
-.menu-printers,
-.menu-files {
+.menu-printers, 
+.menu-left-bar img {
     margin-top: auto;
     width: 100%;
 }
 
+.menu-files-upload button,
 .menu-refresh button,
 .menu-printers button,
 .menu-files button {

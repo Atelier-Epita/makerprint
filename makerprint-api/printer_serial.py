@@ -39,9 +39,11 @@ class PrinterSerial:
         if self.ser is None:
             raise ValueError("Could not connect to printer")
 
+        self.recv_thread = None
         self.recv_buffer = []
         self.recv_thread_running = False
         self.blocking_recv = False
+        self.start_recv_thread()
 
     def send_raw(self, content: bytes):
         """
@@ -127,13 +129,25 @@ class PrinterSerial:
         """
         self.send(LIST_SD_CARD)
 
-    def select_sd_card(self, filename):
-        self.send(SELECT_SD_CARD + " " + filename)
+    def select_sd_file(self, filename):
+        self.send(SELECT_SD_FILE + " " + filename)
 
     def start_print(self):
         self.send(START_PRINT)
 
-    def write_file(self, filename: str, file_content: bytes):
+    def upload_file(self, filepath: str):
+        self.send(BEGIN_WRITE + " " + filepath)
+        with open(filepath, "rb") as f:
+            for line in f.readlines():
+                self.send_raw(line)
+        self.send(END_WRITE + " " + filepath)
+
+    def create_file(self, filename: str, file_content: bytes):
         self.send(BEGIN_WRITE + " " + filename)
         self.send_raw(file_content)
         self.send(END_WRITE + " " + filename)
+
+    def __del__(self):
+        self.recv_thread_running = False
+        self.recv_thread.join()
+        self.ser.close()

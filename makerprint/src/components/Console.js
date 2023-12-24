@@ -2,16 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useUserContext } from '../UserContext';
 import axios from 'axios';
 
-const API_URL = 'http://10.69.88.6:5000';
-const GCODE = {
-    LIST_SD_CARD: 'M20',
-    INIT_SD_CARD: 'M21',
-    SELECT_SD_CARD: 'M23',
-    START_PRINT: 'M24',
-    STOP_PRINT: 'M25',
-    BEGIN_WRITE: 'M28',
-    END_WRITE: 'M29',
-};
+const API_URL = 'http://127.0.0.1:5000';
 
 function ConsoleLog({ printerName }) {
     // TODO: websocket for console logs

@@ -13,7 +13,7 @@ env = Env()
 env.read_env("makerprint.env")
 
 LOGPATH = env("LOGPATH", "makerprint.log")
-GCODEFOLDER = env("GCODEFOLDER", "/home/pi/3dprinter/")
+GCODEFOLDER = env("GCODEFOLDER", "~/3dprinter/")
 
 # create gcode folder if it does not exist
 if not os.path.exists(GCODEFOLDER):
@@ -30,19 +30,25 @@ logging.basicConfig(
 
 connected_printers = {}
 app = flask.Flask("makerprint")
+app.config["DUMMY"] = True
 CORS(app)
+
+if (app.config["DUMMY"]):
+    from mock_serial import MockSerial
+    device = MockSerial()
+    device.open()
 
 
 @app.route("/printer/list")
 def list_printers():
-    ports = printer_serial.list_ports()
+    ports = printer_serial.list_ports() if not app.config["DUMMY"] else [device.port]
     return ports
 
 
 @app.route("/printer/connect", methods=["POST"])
 def connect_printer():
     port = flask.request.json["port"]
-    baudrate = flask.request.json["baudrate"]
+    baudrate = flask.request.json.get("baudrate", None)
 
     if port in connected_printers:
         return flask.jsonify({"success": True})
@@ -93,4 +99,24 @@ def upload_file():
         os.mkdir(GCODEFOLDER)
 
     file.save(os.path.join(GCODEFOLDER, file.filename))
+    return flask.jsonify({"success": True})
+
+
+@app.route("/printer/start", methods=["POST"])
+def printer_start():
+    port = flask.request.json["port"]
+    filename = flask.request.json["filename"]
+    filepath = os.path.join(GCODEFOLDER, filename)
+
+    if not os.path.exists(filepath):
+        flask.abort(400, "File doesn't exists")
+
+    if port not in connected_printers:
+        try:
+            connected_printers[port] = printer_serial.PrinterSerial(port)
+        except ValueError as e:
+            flask.abort(400, str(e))
+
+    printer = connected_printers[port]
+    #printer.send(f"M23 {filepath}")
     return flask.jsonify({"success": True})
