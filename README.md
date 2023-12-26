@@ -11,21 +11,36 @@ virtualenv venv
 pip install -e .[dev]
 ```
 
-## Start frontend
+## Frontend
+
+### .env file
+make sure to create a `.env` file in the `makerprint` folder with the following content:
+
+```env
+# .env file
+REACT_APP_API_URL=http://127.0.0.1:5000
+```
+
+### start the app
 
 ```bash
 cd makerprint
 npm install
-npm run start
+npm run start # or npm run build to build the app
 ```
 
-## Start backend
+Here is an overview of the app:
+![overview](ressources/overview.png)
+
+
+## Backend
 
 ```bash
 flask --app makerprint-api/api.py run
 ```
 
-make sure to change the settings in `makerprint/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
+make sure to change the settings in `makerprint-api/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
+
 
 ## Nginx configuration
 
