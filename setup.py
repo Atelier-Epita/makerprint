@@ -10,6 +10,7 @@ setup(
         "flask",
         "flask-cors",
         "environs",
+
     ],
     extras_require={
         'dev': [

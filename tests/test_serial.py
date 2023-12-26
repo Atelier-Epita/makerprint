@@ -11,8 +11,6 @@ def test_serial():
 
 def test_upload_file():
     printser = printer_serial.PrinterSerial()
-
-    # TODO: handle return values + filter responses from printer (?)
     ret = printser.init_sd_card()
     print(ret)
     ret = printser.list_sd_card()
