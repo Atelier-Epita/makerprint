@@ -30,7 +30,7 @@ logging.basicConfig(
 
 connected_printers = {}
 app = flask.Flask("makerprint")
-app.config["DUMMY"] = True
+app.config["DUMMY"] = False
 CORS(app)
 
 if (app.config["DUMMY"]):
@@ -105,7 +105,7 @@ def upload_file():
 @app.route("/printer/start", methods=["POST"])
 def printer_start():
     port = flask.request.json["port"]
-    filename = flask.request.json["filename"]
+    filename = flask.request.json["file"]
     filepath = os.path.join(GCODEFOLDER, filename)
 
     if not os.path.exists(filepath):
@@ -118,5 +118,8 @@ def printer_start():
             flask.abort(400, str(e))
 
     printer = connected_printers[port]
-    #printer.send(f"M23 {filepath}")
+    printer.init_sd_card()
+    printer.upload_file(filepath, filename)
+    printer.select_sd_file(filename)
+    printer.start_print()
     return flask.jsonify({"success": True})

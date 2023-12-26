@@ -135,12 +135,12 @@ class PrinterSerial:
     def start_print(self):
         self.send(START_PRINT)
 
-    def upload_file(self, filepath: str):
-        self.send(BEGIN_WRITE + " " + filepath)
+    def upload_file(self, filepath: str, filename: str):
+        self.send(BEGIN_WRITE + " " + filename)
         with open(filepath, "rb") as f:
-            for line in f.readlines():
-                self.send_raw(line)
-        self.send(END_WRITE + " " + filepath)
+            content = f.read()
+            self.send_raw(content)
+        self.send(END_WRITE + " " + filename)
 
     def create_file(self, filename: str, file_content: bytes):
         self.send(BEGIN_WRITE + " " + filename)

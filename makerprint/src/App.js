@@ -1,15 +1,23 @@
 import React from 'react';
+
+import Error from './components/Error';
 import Menu from './components/Menu';
-import Console from './components/Console';
+import Move from './components/Move';
+
 import './App.css';
 import { UserProvider } from './UserContext';
+import Status from './components/Status';
 
 function App() {
   return (
     <div className="app">
       <UserProvider>
-        <Menu className="menu" />
-        <Console printerName="Printer 1" />
+        <Error />
+        <div className="app-content">
+          <Menu />
+          <Move />
+          <Status />
+        </div>
       </UserProvider>
     </div>
   );
