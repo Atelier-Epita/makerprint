@@ -1,0 +1,222 @@
+body {
+    background-color: #f4f4f4;
+}
+
+.success-container,
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    transition: color 0.3s;
+}
+
+.success-container {
+    background-color: #aaffaa;
+}
+
+.error-container {
+    background-color: #ffaaaa;
+}
+
+.app-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    padding: 20px;
+    margin: 20px 0;
+    gap: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    color: #333333;
+}
+
+.menu-left-bar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+}
+
+.app h1,
+h2 {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.app button:disabled {
+    cursor: not-allowed;
+    background-color: #cccccccc;
+}
+
+.menu-status,
+.menu-move,
+.menu-console,
+.menu-left-bar {
+    display: block;
+    justify-content: left;
+    border: 2px solid #aaaaaa;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+}
+
+.menu-files-upload {
+    margin-top: 20px;
+}
+
+.menu-files-list {
+    border-style: dashed;
+    padding-left: 10px;
+    padding-right: 10px;
+    max-height: 20vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.menu-files,
+.menu-refresh,
+.menu-printers,
+.menu-left-bar img {
+    margin-top: auto;
+    width: 100%;
+}
+
+.menu-refresh,
+.status-buttons{
+    display: flex;
+    gap: 10px;
+}
+
+.menu-status button,
+.menu-files-upload button,
+.menu-refresh button,
+.menu-printers button,
+.menu-files button {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+    background-color: #f4f4f4;
+    color: #333333;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-status button:hover,
+.console-clear button:hover,
+.menu-refresh button:hover,
+.menu-printers button:hover,
+.menu-files button:hover {
+    background-color: #E6B513;
+    color: #ffffff;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+/* 4x3 grid of equal sized buttons centered in the middle of the screen */
+.menu-move-buttons {
+    display: grid;
+    gap: 20px;
+    padding: 10px;
+    margin: 20px;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    align-items: center;
+    justify-items: center;
+    object-fit: cover;
+}
+
+.menu-move-buttons button:hover {
+    background-color: #E6B513;
+    color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.right-arrow,
+.left-arrow,
+.zup-arrow,
+.zdown-arrow,
+.yup-arrow,
+.ydown-arrow {
+    padding: 10px;
+    border: solid black;
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+}
+
+.right-arrow {
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.left-arrow {
+    transform: rotate(135deg);
+    -webkit-transform: rotate(135deg);
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.yup-arrow {
+    transform: rotate(-135deg);
+    -webkit-transform: rotate(-135deg);
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.ydown-arrow {
+    transform: rotate(45deg);
+    -webkit-transform: rotate(45deg);
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.zup-arrow {
+    transform: rotate(-135deg);
+    -webkit-transform: rotate(-135deg);
+    grid-column: 4;
+    grid-row: 1;
+}
+
+.zdown-arrow {
+    transform: rotate(45deg);
+    -webkit-transform: rotate(45deg);
+    grid-column: 4;
+    grid-row: 3;
+}
+
+.home-button {
+    padding: 10px;
+    border: solid black;
+    border-width: 3px 3px 3px 3px;
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background-color: #f4f4f4;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #E6B513;
+    border-radius: 5px;
+    transition: width 0.3s;
+}

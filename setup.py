@@ -7,7 +7,10 @@ setup(
     py_modules=['makerprint'],
     install_requires=[
         "pyserial",
-        "logging",
+        "flask",
+        "flask-cors",
+        "environs",
+
     ],
     extras_require={
         'dev': [
