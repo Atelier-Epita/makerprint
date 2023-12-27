@@ -2,24 +2,33 @@ body {
     background-color: #f4f4f4;
 }
 
-.success-container,
 .error-container {
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 16px;
-    transition: background-color 0.3s;
-    transition: color 0.3s;
-}
-
-.success-container {
-    background-color: #aaffaa;
-}
-
-.error-container {
     background-color: #ffaaaa;
+    font-size: 16px;
+    border-radius: 10px;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: height 0.5s, opacity 0.5s;
 }
+
+.visible-container {
+    padding: 10px;
+    margin: 10px;
+    opacity: 1;
+    height: auto;
+}
+
+.hidden-container {
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    height: 0;
+}
+
 
 .app-content {
     display: grid;
@@ -142,6 +151,20 @@ h2 {
     background-color: #E6B513;
     color: #ffffff;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.menu-move input {
+    width: 100%;
+    padding: 10px 0px;
+
+    border: none;
+    border-radius: 5px;
+    background-color: #f4f4f4;
+    text-align: center;
+    cursor: pointer;
+
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
 }
 
 .right-arrow,

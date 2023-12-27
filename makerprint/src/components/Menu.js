@@ -18,6 +18,11 @@ function FilesButton() {
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_FILES, payload: res.data });
             })
+            .catch((err) => {
+                const code = err.name;
+                const message = err.code;
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
+            });
     }
 
     const uploadFile = (file) => {
@@ -36,8 +41,9 @@ function FilesButton() {
                 dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
             })
             .catch((err) => {
-                // todo catch errors and display them
-                console.log(err);
+                const code = err.name;
+                const message = err.code;
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
             });
     };
 
@@ -124,11 +130,21 @@ function Menu() {
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_PRINTERS, payload: res.data });
             })
+            .catch((err) => {
+                const code = err.code;
+                const message = err.message;
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
+            });
 
         axios.get(`${process.env.REACT_APP_API_URL}/file/list`)
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_FILES, payload: res.data });
             })
+            .catch((err) => {
+                const code = err.name;
+                const message = err.code;
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
+            });
     }
 
     const onClear = () => {

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import axios from 'axios';
 import { ACTIONS, useUserContext } from '../UserContext';
 
-function Move () {
+function Move() {
     const [state, dispatch] = useUserContext();
     const [formData, setFormData] = useState({
         command: '',
@@ -19,14 +19,14 @@ function Move () {
                 port: state.printerName
             },
         )
-        .then((res) => {
-            const code = res.status;
-            const message = res.statusText;
-            dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
-        })
-        .catch((err) => {
-            console.log(err);
-        });
+            .then((res) => {
+                const code = res.status;
+                const message = res.statusText;
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
+            })
+            .catch((err) => {
+                console.log(err);
+            });
     };
 
     const handleChange = (e) => {
@@ -38,6 +38,7 @@ function Move () {
 
         e.preventDefault();
         sendCommand(formData.command);
+        setFormData({ command: '' });
     }
 
     return (
@@ -53,8 +54,13 @@ function Move () {
                 <button className="home-button" onClick={() => sendCommand("G28")}></button>
             </div>
             <form onSubmit={handleSubmit}>
-                <input type="text" name="command" onChange={handleChange} />
-                <button type="submit">Send</button>
+                <input
+                    type="text"
+                    name="command"
+                    onChange={handleChange}
+                    value={formData.command}
+                    placeholder="Enter a command"
+                />
             </form>
         </div>
     );
