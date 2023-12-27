@@ -25,7 +25,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
         logging.FileHandler(LOGPATH, mode="w"),
     ],
-    level=logging.DEBUG,
+    level=env("LOGLEVEL", "INFO"),
 )
 
 connected_printers = {}
