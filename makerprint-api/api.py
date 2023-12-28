@@ -25,12 +25,12 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
         logging.FileHandler(LOGPATH, mode="w"),
     ],
-    level=logging.DEBUG,
+    level=env("LOGLEVEL", "INFO"),
 )
 
 connected_printers = {}
 app = flask.Flask("makerprint")
-app.config["DUMMY"] = False
+app.config["DUMMY"] = env.bool("DUMMY", False)
 CORS(app)
 
 if (app.config["DUMMY"]):
