@@ -5,10 +5,9 @@
 
 ## Dev Installation
 
-install dev dependancies
+install dev dependancies and command line tool `makerprint`:
 
 ```bash
-virtualenv venv
 pip install -e .[dev]
 ```
 
@@ -22,11 +21,12 @@ make sure to create a `.env` file in the `makerprint` folder with the following 
 # .env file
 REACT_APP_API_URL=http://127.0.0.1:5000
 ```
+Also make sure to change the `REACT_APP_API_URL` to match your setup.
 
 ### start the app
 
 ```bash
-cd makerprint
+cd makerprint-app
 npm install
 npm run start # or npm run build to build the app
 ```
@@ -38,10 +38,14 @@ Here is an overview of the app:
 ## Backend
 
 ```bash
-flask --app makerprint-api/api.py run
+# display the help
+makerprint --help
+
+# start the server with the default config
+makerprint --config makerprint.env
 ```
 
-make sure to change the settings in `makerprint-api/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
+make sure to change the config in `makerprint/makerprint.env` to match your setup (logs location, gcode files locations, and so on).
 
 
 ## Nginx configuration

@@ -4,13 +4,13 @@ setup(
     name='makerprint',
     author='L\'Atelier <tech@atelier-maker.fr>',
     version='0.1',
-    py_modules=['makerprint'],
+    python_requires='>=3.8',
+    packages=['makerprint'],
     install_requires=[
         "pyserial",
         "flask",
         "flask-cors",
         "environs",
-
     ],
     extras_require={
         'dev': [
@@ -18,6 +18,11 @@ setup(
             'pytest-cov',
             'black',
             'flake8',
+        ],
+    },
+    entry_points={
+        'console_scripts': [
+            'makerprint = makerprint.__main__:main',
         ],
     },
 )
