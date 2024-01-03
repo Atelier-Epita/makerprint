@@ -9,39 +9,13 @@ from environs import Env
 from . import printer_serial
 from .const import *
 
-env = Env()
-env.read_env("makerprint.env")
-
-LOGPATH = env("LOGPATH", "makerprint.log")
-GCODEFOLDER = env("GCODEFOLDER", "~/3dprinter/")
-
-# create gcode folder if it does not exist
-if not os.path.exists(GCODEFOLDER):
-    os.mkdir(GCODEFOLDER)
-
-# log to file and stdout
-logging.basicConfig(
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOGPATH, mode="w"),
-    ],
-    level=env("LOGLEVEL", "INFO"),
-)
-
 connected_printers = {}
 app = flask.Flask("makerprint")
-app.config["DUMMY"] = env.bool("DUMMY", False)
 CORS(app)
-
-if (app.config["DUMMY"]):
-    from mock_serial import MockSerial
-    device = MockSerial()
-    device.open()
-
 
 @app.route("/printer/list")
 def list_printers():
-    ports = printer_serial.list_ports() if not app.config["DUMMY"] else [device.port]
+    ports = printer_serial.list_ports()
     return ports
 
 
@@ -79,11 +53,12 @@ def printer_command():
 
 @app.route("/file/list")
 def list_files():
-    if not os.path.exists(GCODEFOLDER):
-        os.mkdir(GCODEFOLDER)
+    folder = app.config["GCODEFOLDER"]
+    if not os.path.exists(folder):
+        os.mkdir(folder)
 
     # list all files ending with .gcode
-    return [f for f in os.listdir(GCODEFOLDER) if f.endswith(".gcode")]
+    return [f for f in os.listdir(folder) if f.endswith(".gcode")]
 
 
 @app.route("/file/upload", methods=["POST"])
@@ -95,10 +70,11 @@ def upload_file():
     if file.filename == "":
         flask.abort(400, "No file provided")
 
-    if not os.path.exists(GCODEFOLDER):
-        os.mkdir(GCODEFOLDER)
+    folder = app.config["GCODEFOLDER"]
+    if not os.path.exists(folder):
+        os.mkdir(folder)
 
-    file.save(os.path.join(GCODEFOLDER, file.filename))
+    file.save(os.path.join(folder, file.filename))
     return flask.jsonify({"success": True})
 
 
@@ -106,7 +82,9 @@ def upload_file():
 def printer_start():
     port = flask.request.json["port"]
     filename = flask.request.json["file"]
-    filepath = os.path.join(GCODEFOLDER, filename)
+
+    folder = app.config["GCODEFOLDER"]
+    filepath = os.path.join(folder, filename)
 
     if not os.path.exists(filepath):
         flask.abort(400, "File doesn't exists")
@@ -123,3 +101,38 @@ def printer_start():
     printer.select_sd_file(filename)
     printer.start_print()
     return flask.jsonify({"success": True})
+
+def run(config_file="makerprint.env", debug=False):
+    env = Env()
+    env.read_env(config_file, verbose=True)
+
+    GCODEFOLDER = env("GCODEFOLDER", "3dprinter/")
+    LOGPATH = env("LOGPATH", "makerprint.log")
+    LOGLEVEL = env("LOGLEVEL", "INFO")
+    HOST = env("HOST", "127.0.0.1")
+    PORT = env.int("PORT", 5000)
+
+    # create gcode folder if it does not exist
+    if not os.path.exists(GCODEFOLDER):
+        os.mkdir(GCODEFOLDER)
+
+    # log to file and stdout
+    logging.basicConfig(
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(LOGPATH, mode="w"),
+        ],
+        level=LOGLEVEL,
+    )
+
+    if debug:
+        from mock_serial import MockSerial
+        device = MockSerial()
+        device.open()
+
+        # wrap list_ports to include mock serial port
+        old_list_ports = printer_serial.list_ports
+        printer_serial.list_ports = lambda: old_list_ports() + [device.port]
+
+    app.config["GCODEFOLDER"] = GCODEFOLDER
+    app.run(host=HOST, port=PORT, debug=debug)
