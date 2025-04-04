@@ -11,6 +11,7 @@ setup(
         "flask",
         "flask-cors",
         "environs",
+        "Printrun"
     ],
     extras_require={
         'dev': [

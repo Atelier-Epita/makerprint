@@ -1,0 +1,23 @@
+services:
+  makerprint:
+    image: makerprint
+    build:
+      context: . 
+      dockerfile: Dockerfile
+    
+    container_name: makerprint
+    restart: unless-stopped
+    devices:
+      - /dev:/dev
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log
+    ports:
+      - "5000:5000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5000
+      - GCODEFOLDER=/data
+      - LOGPATH=/var/log/makerprint.log
+      - LOGLEVEL=INFO
+

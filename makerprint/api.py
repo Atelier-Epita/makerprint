@@ -1,22 +1,19 @@
-import logging
 import os
-import sys
-
 import flask
 from flask_cors import CORS
-from environs import Env
+import logging
 
-from . import printer_serial
-from .const import *
+from printrun import gcoder
 
-connected_printers = {}
+from . import utils
+
+connected_printers = {} # ugly
 app = flask.Flask("makerprint")
 CORS(app)
 
 @app.route("/printer/list")
 def list_printers():
-    ports = printer_serial.list_ports()
-    return ports
+    return utils.list_ports()
 
 
 @app.route("/printer/connect", methods=["POST"])
@@ -28,7 +25,7 @@ def connect_printer():
         return flask.jsonify({"success": True})
 
     try:
-        connected_printers[port] = printer_serial.PrinterSerial(port, baudrate)
+        connected_printers[port] = utils.PrinterSerial(port, baudrate)
     except ValueError as e:
         flask.abort(400, str(e))
 
@@ -42,7 +39,7 @@ def printer_command():
 
     if port not in connected_printers:
         try:
-            connected_printers[port] = printer_serial.PrinterSerial(port)
+            connected_printers[port] = utils.PrinterSerial(port)
         except ValueError as e:
             flask.abort(400, str(e))
 
@@ -91,7 +88,7 @@ def printer_start():
 
     if port not in connected_printers:
         try:
-            connected_printers[port] = printer_serial.PrinterSerial(port)
+            connected_printers[port] = utils.PrinterSerial(port)
         except ValueError as e:
             flask.abort(400, str(e))
 
@@ -101,38 +98,3 @@ def printer_start():
     printer.select_sd_file(filename)
     printer.start_print()
     return flask.jsonify({"success": True})
-
-def run(config_file="makerprint.env", debug=False):
-    env = Env()
-    env.read_env(config_file, verbose=True)
-
-    GCODEFOLDER = env("GCODEFOLDER", "3dprinter/")
-    LOGPATH = env("LOGPATH", "makerprint.log")
-    LOGLEVEL = env("LOGLEVEL", "INFO")
-    HOST = env("HOST", "127.0.0.1")
-    PORT = env.int("PORT", 5000)
-
-    # create gcode folder if it does not exist
-    if not os.path.exists(GCODEFOLDER):
-        os.mkdir(GCODEFOLDER)
-
-    # log to file and stdout
-    logging.basicConfig(
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(LOGPATH, mode="w"),
-        ],
-        level=LOGLEVEL,
-    )
-
-    if debug:
-        from mock_serial import MockSerial
-        device = MockSerial()
-        device.open()
-
-        # wrap list_ports to include mock serial port
-        old_list_ports = printer_serial.list_ports
-        printer_serial.list_ports = lambda: old_list_ports() + [device.port]
-
-    app.config["GCODEFOLDER"] = GCODEFOLDER
-    app.run(host=HOST, port=PORT, debug=debug)
