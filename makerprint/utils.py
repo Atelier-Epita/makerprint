@@ -1,7 +1,26 @@
 import logging
+import os
+import sys
 
 import serial
 import serial.tools.list_ports
+
+
+LOGPATH = os.environ.get("LOGPATH", "log.txt")
+LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGPATH = os.environ.get("LOGPATH", "log.txt")
+GCODEFOLDER = os.environ.get("GCODEFOLDER", "data")
+
+
+logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(LOGPATH, mode="w"),
+    ],
+    level=LOGLEVEL,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def list_ports():

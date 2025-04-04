@@ -23,7 +23,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'makerprint = makerprint.__main__:main',
+            'makerprint = makerprint.main:main',
         ],
     },
 )

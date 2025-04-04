@@ -3,6 +3,7 @@ import flask
 from flask_cors import CORS
 import logging
 
+from printrun.printcore import printcore
 from printrun import gcoder
 
 from . import utils
@@ -13,6 +14,7 @@ CORS(app)
 
 @app.route("/printer/list")
 def list_printers():
+    logging.info("Listing printers")
     return utils.list_ports()
 
 
@@ -50,7 +52,7 @@ def printer_command():
 
 @app.route("/file/list")
 def list_files():
-    folder = app.config["GCODEFOLDER"]
+    folder = utils.GCODEFOLDER
     if not os.path.exists(folder):
         os.mkdir(folder)
 
@@ -67,7 +69,7 @@ def upload_file():
     if file.filename == "":
         flask.abort(400, "No file provided")
 
-    folder = app.config["GCODEFOLDER"]
+    folder = utils.GCODEFOLDER
     if not os.path.exists(folder):
         os.mkdir(folder)
 
@@ -80,7 +82,7 @@ def printer_start():
     port = flask.request.json["port"]
     filename = flask.request.json["file"]
 
-    folder = app.config["GCODEFOLDER"]
+    folder = utils.GCODEFOLDER
     filepath = os.path.join(folder, filename)
 
     if not os.path.exists(filepath):
