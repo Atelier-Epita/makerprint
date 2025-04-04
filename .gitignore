@@ -102,7 +102,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-makerprint.env
 .env
 .venv
 env/

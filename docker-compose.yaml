@@ -2,7 +2,7 @@ services:
   makerprint:
     image: makerprint
     build:
-      context: . 
+      context: makerprint
       dockerfile: Dockerfile
     
     container_name: makerprint
@@ -20,4 +20,41 @@ services:
       - GCODEFOLDER=/data
       - LOGPATH=/var/log/makerprint.log
       - LOGLEVEL=INFO
+    networks:
+      - makerprint-net
 
+  web:
+    image: makerprint-web
+    build:
+      context: makerprint-web
+      dockerfile: Dockerfile
+    
+    container_name: makerprint-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://makerprint:5000
+      - REACT_APP_SOCKET_URL=http://makerprint:5000
+    networks:
+      - makerprint-net
+
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: makerprint-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/ssl/private
+  #   depends_on:
+  #     - makerprint
+  #     - web
+  #   networks:
+  #     - makerprint-net
+
+networks:
+  makerprint-net:
+    driver: bridge

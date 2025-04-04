@@ -5,21 +5,16 @@
 
 ## Dev Installation
 
-install dev dependancies and command line tool `makerprint`:
+run everything with docker-compose
 
 ```bash
-pip install -e .[dev]
+docker-compose up --build
 ```
 
+change the `docker-compose.yml` file to match your setup (ports, volumes, etc.)
 
 ## Frontend
 
-### .env file
-make sure to create a `.env` file in the `makerprint` folder with the following content:
-
-```env
-# .env file
-REACT_APP_API_URL=http://127.0.0.1:5000
 ```
 Also make sure to change the `REACT_APP_API_URL` to match your setup.
 
