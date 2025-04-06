@@ -2,6 +2,10 @@ from . import api, utils
 
 import os
 import argparse
+import asyncio
+
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action="store_true")
@@ -20,6 +24,12 @@ if debug:
     utils.list_ports = lambda: old_list_ports() + [device.port]
 
 def main():
-    """Main function to run the Flask application."""
-    utils.logger.info("Starting Flask application...")
-    api.app.run(host=HOST, port=PORT, debug=debug)
+    config = Config()
+    config.bind = f"{HOST}:{PORT}"
+    config.use_reloader = debug
+    config.use_uvloop = True
+
+    utils.logger.info(f"Starting server on {HOST}:{PORT}")
+    utils.logger.info("Press Ctrl+C to quit.")
+
+    asyncio.run(serve(api.app, config))

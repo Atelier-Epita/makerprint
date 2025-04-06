@@ -8,10 +8,11 @@ setup(
     packages=['makerprint'],
     install_requires=[
         "pyserial",
-        "flask",
-        "flask-cors",
+        "fastapi",
+        "python-multipart",
         "environs",
-        "Printrun"
+        "Printrun",
+        "hypercorn",
     ],
     extras_require={
         'dev': [

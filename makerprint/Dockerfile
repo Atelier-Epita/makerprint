@@ -35,4 +35,3 @@ RUN . /opt/venv/bin/activate && \
 COPY entrypoint .
 ENTRYPOINT "/app/entrypoint"
 
-
