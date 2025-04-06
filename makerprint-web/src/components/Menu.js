@@ -14,7 +14,7 @@ function FilesButton() {
     );
 
     const refreshFiles = () => {
-        axios.get(`${process.env.REACT_APP_API_URL}/file/list`)
+        axios.get(`${process.env.REACT_APP_API_URL}/file/list/`)
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_FILES, payload: res.data });
             })
@@ -29,7 +29,7 @@ function FilesButton() {
         const formData = new FormData();
         formData.append('file', file);
 
-        axios.post(`${process.env.REACT_APP_API_URL}/file/upload`, formData, {
+        axios.post(`${process.env.REACT_APP_API_URL}/file/upload/`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -126,7 +126,7 @@ function Menu() {
     const [state, dispatch] = useUserContext();
 
     const onRefresh = () => {
-        axios.get(`${process.env.REACT_APP_API_URL}/printer/list`)
+        axios.get(`${process.env.REACT_APP_API_URL}/printer/list/`)
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_PRINTERS, payload: res.data });
             })
@@ -136,7 +136,7 @@ function Menu() {
                 dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
             });
 
-        axios.get(`${process.env.REACT_APP_API_URL}/file/list`)
+        axios.get(`${process.env.REACT_APP_API_URL}/file/list/`)
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_FILES, payload: res.data });
             })
