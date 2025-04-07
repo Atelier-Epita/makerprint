@@ -13,7 +13,7 @@ function Move() {
         console.log(state.printerName);
 
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/command`,
+            `${process.env.REACT_APP_API_URL}/printer/command/`,
             {
                 command: command,
                 port: state.printerName

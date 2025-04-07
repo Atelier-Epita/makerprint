@@ -16,9 +16,13 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", 5000))
 
 if debug:
+    utils.logger.info("Debug mode enabled")
     from mock_serial import MockSerial
+
     device = MockSerial()
     device.open()
+
+    utils.logger.info(f"Mocking serial port: {device.port}")
 
     old_list_ports = utils.list_ports
     utils.list_ports = lambda: old_list_ports() + [device.port]

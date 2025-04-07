@@ -28,7 +28,9 @@ RUN mkdir -p /opt && cd /opt && \
 COPY setup.py /app
 COPY makerprint/ /app/makerprint
 
-RUN . /opt/venv/bin/activate && \
+# pip cache
+RUN --mount=type=cache,target=/root/.cache \
+    . /opt/venv/bin/activate && \
     cd /app && \
     python -m pip install .
 

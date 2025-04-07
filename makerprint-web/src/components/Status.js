@@ -9,7 +9,7 @@ function Status() {
         if (!state.printerName) return null;
 
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/command`,
+            `${process.env.REACT_APP_API_URL}/printer/command/`,
             {
                 command: command,
                 port: state.printerName
@@ -27,11 +27,11 @@ function Status() {
 
     const startPrinting = () => {
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/start`,
+            `${process.env.REACT_APP_API_URL}/printer/start/`,
             {
-                port: state.printerName,
-                file: state.fileName
-            },
+                filename: state.fileName,
+                port: state.printerName
+            }
         )
             .then((res) => {
                 if (res.status === 200)
@@ -48,7 +48,6 @@ function Status() {
             .catch((err) => {
                 console.log(err);
             });
-
     }
 
     const stopPrinting = () => {

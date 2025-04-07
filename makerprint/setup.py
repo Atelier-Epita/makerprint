@@ -13,6 +13,7 @@ setup(
         "environs",
         "Printrun",
         "hypercorn",
+        "mock-serial",
     ],
     extras_require={
         'dev': [
