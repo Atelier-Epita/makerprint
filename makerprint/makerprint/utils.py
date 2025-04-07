@@ -7,7 +7,7 @@ import serial.tools.list_ports
 
 
 LOGPATH = os.environ.get("LOGPATH", "log.txt")
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGLEVEL = os.environ.get("LOGLEVEL", "DEBUG").upper()
 LOGPATH = os.environ.get("LOGPATH", "log.txt")
 GCODEFOLDER = os.environ.get("GCODEFOLDER", "data")
 

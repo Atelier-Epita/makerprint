@@ -39,6 +39,7 @@ function Status() {
                     dispatch({ type: ACTIONS.SET_STATUS, payload: "printing" });
                 }
                 else {
+                    console.log(res);
                     dispatch({ type: ACTIONS.SET_STATUS, payload: "idle" });
                 }
                 const code = res.status;

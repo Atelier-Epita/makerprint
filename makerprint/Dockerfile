@@ -29,7 +29,7 @@ COPY setup.py /app
 COPY makerprint/ /app/makerprint
 
 # pip cache
-RUN --mount=type=cache,target=/root/.cache \
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
     . /opt/venv/bin/activate && \
     cd /app && \
     python -m pip install .

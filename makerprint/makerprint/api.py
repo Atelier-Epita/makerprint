@@ -55,10 +55,8 @@ async def connect_printer(port: str, baudrate: int = None):
         return {"success": True}
 
     try:
-        b = baudrate or 115200
-        p = printcore(port, b)
-
-        logger.info(f"Connecting to printer on {port} at {b} baud")
+        p = printcore(port, baud=baudrate or 115200)
+        logger.info(f"Connecting to printer on {port}")
 
         while not p.online:
             logger.info("Waiting for printer to connect...")
