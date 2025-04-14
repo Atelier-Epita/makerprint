@@ -29,3 +29,25 @@ npm run start # or npm run build to build the app
 Here is an overview of the app:
 ![overview](ressources/overview.png)
 
+## Deploy
+
+
+### Login to docker registry
+
+create a [personnal access token](https://github.com/settings/tokens) with:
+- write:packages
+- read:packages
+- delete:packages
+- repo
+
+```bash
+echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+### Build and push the images
+
+```bash
+docker build -t ghcr.io/atelier-epita/makerprint-api:latest -f makerprint/Dockerfile makerprint --push
+
+docker build -t ghcr.io/atelier-epita/makerprint-web:latest -f makerprint-web/Dockerfile makerprint-web --push
+```
