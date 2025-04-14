@@ -1,3 +1,5 @@
+version: '3.3'
+
 services:
   makerprint-api:
     image: ghcr.io/atelier-epita/makerprint-api:latest

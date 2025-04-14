@@ -47,7 +47,6 @@ echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
 ### Build and push the images
 
 ```bash
-docker build -t ghcr.io/atelier-epita/makerprint-api:latest -f makerprint/Dockerfile makerprint --push
-
-docker build -t ghcr.io/atelier-epita/makerprint-web:latest -f makerprint-web/Dockerfile makerprint-web --push
+docker-compose build
+docker-compose push
 ```
