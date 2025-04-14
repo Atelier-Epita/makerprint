@@ -22,6 +22,8 @@ RUN mkdir -p /opt && cd /opt && \
     git clone https://github.com/kliment/Printrun.git && \
     cd Printrun && \
     git checkout $TAG && \
+    # NOT WORKING ON RPI
+    # https://wiki.wxpython.org/BuildWxPythonOnRaspberryPi
     python -m pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/wxPython-4.2.2-cp312-cp312-linux_x86_64.whl && \
     python -m pip install .
 
