@@ -48,6 +48,6 @@ echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
 
 the app is being deployed on a raspberry pi, so we need to build according to it's architecture
 ```bash
-docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64 -t ghcr.io/atelier-epita/makerprint-api:latest --push ./makerprint
-docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64 -t ghcr.io/atelier-epita/makerprint-web:latest --push ./makerprint-web
+docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/atelier-epita/makerprint-api:latest --push ./makerprint
+docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/atelier-epita/makerprint-web:latest --push ./makerprint-web
 ```

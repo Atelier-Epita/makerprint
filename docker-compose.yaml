@@ -1,5 +1,3 @@
-version: '3.3'
-
 services:
   makerprint-api:
     image: ghcr.io/atelier-epita/makerprint-api:latest
@@ -9,8 +7,8 @@ services:
     
     container_name: makerprint-api
     restart: unless-stopped
-    devices:
-      - /dev:/dev
+    # devices:
+    #   - /dev:/dev
     volumes:
       - ./data:/data
       - ./logs:/var/log
@@ -28,8 +26,6 @@ services:
     build:
       context: makerprint-web
       dockerfile: Dockerfile
-      args:
-        REACT_APP_API_URL: /api
     
     container_name: makerprint-web
     restart: unless-stopped
