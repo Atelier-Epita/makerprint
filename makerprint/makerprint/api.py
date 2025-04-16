@@ -2,17 +2,18 @@ import os
 import fastapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
-from fastapi import UploadFile, Form, File
+from fastapi import UploadFile, Form, File, Body
 
 import logging
+import asyncio
 
 from printrun.printcore import printcore
 from printrun import gcoder
 
-from . import utils
+from . import utils, models
 from .utils import logger
 
-connected_printers = {} # ugly
+connected_printers = {}  # ugly
 
 app = fastapi.FastAPI(
     title="MakerPrint API",
@@ -27,47 +28,157 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# logs in fastapi
+@app.middleware("http")
+async def log_requests(request: fastapi.Request, call_next):
+    logger.info(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response: {response.status_code}, {response}")
+    return response
+
+
 @app.get("/")
-def index():
+async def index():
     return {"status": "ok"}
 
 
-@app.get("/printer/list/", response_model=list[str])
-def list_printers():
-    logger.info("Listing printers")
-    return utils.list_ports()
+@app.get("/printers/", response_model=list[str])
+async def list_printers_name():
+    return utils.NAMES_TO_PORTS().keys()
 
 
-@app.post("/printer/connect/", response_model=dict[str, bool])
-def connect_printer(port: str, baudrate: int = None):
-    if port in connected_printers:
-        return {"success": True}
+@app.get("/printers/{name}/", response_model=models.PrinterStatus)
+async def printer_status(name: str):
+    if name in connected_printers:
+        printer = connected_printers[name]
+        return utils.printer_status(printer)
+    else:
+        raise HTTPException(status_code=404, detail="Printer not connected")
+
+
+@app.post("/printers/{name}/connect/", response_model=models.PrinterStatus)
+async def connect_printer(
+    name: str,
+    baud: int = 115200,
+):
+    if name in connected_printers:
+        logger.info(f"Printer {name} already connected")
+        return utils.printer_status(connected_printers[name])
+
+    port = utils.NAMES_TO_PORTS().get(name)
+    if not port:
+        raise HTTPException(status_code=404, detail="Printer not found")
 
     try:
-        connected_printers[port] = utils.PrinterSerial(port, baudrate)
+        timeout = 5
+        start_time = asyncio.get_event_loop().time()
+
+        for baudrate in utils.BAUDRATES:
+            p = printcore(port, baud=baudrate)
+            logger.info(
+                f"Trying to connect to printer {name} on {port} with baudrate {baudrate}"
+            )
+
+            while not p.online:
+                if (asyncio.get_event_loop().time() - start_time) > timeout:
+                    continue
+
+            # successfully connected
+            if p.online:
+                connected_printers[name] = p
+                logger.info(f"Connected to printer {name} on {port}")
+                return utils.printer_status(connected_printers[name])
+
+        else:
+            raise ValueError("Failed to connect to printer with any baudrate")
+
     except ValueError as e:
-        logger.error(f"Failed to connect to printer: {e}")
+        logger.error(f"Failed to connect to printer {name} on {port}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+
+@app.post("/printers/{name}/disconnect/", response_model=dict[str, bool])
+async def disconnect_printer(name: str):
+    if name not in connected_printers:
+        return {"success": True}
+
+    printer: printcore = connected_printers[name]
+    printer.disconnect()
+    del connected_printers[name]
+
     return {"success": True}
 
 
-@app.post("/printer/command/", response_model=dict[str, bool])
-def printer_command(port: str, command: str):
-    if port not in connected_printers:
-        try:
-            connected_printers[port] = utils.PrinterSerial(port)
-        except ValueError as e:
-            logger.error(f"Failed to connect to printer: {e}")
-            raise HTTPException(status_code=400, detail=str(e))
+@app.post("/printers/{name}/command/", response_model=models.PrinterStatus)
+async def printer_command(name: str, data: dict = Body(...)):
+    command = data.get("command", "")
+    if not command:
+        raise HTTPException(status_code=400, detail="Command cannot be empty")
 
-    printer = connected_printers[port]
-    printer.send(command)
-    return {"success": True}
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+    if not command:
+        raise HTTPException(status_code=400, detail="Command cannot be empty")
+
+    printer: printcore = connected_printers[name]
+    printer.send_now(command)
+    return utils.printer_status(printer)
+
+
+@app.post("/printers/{name}/start/", response_model=models.PrinterStatus)
+async def printer_start(name: str, data: dict = Body(...)):
+    filename = data.get("filename")
+
+    folder = utils.GCODEFOLDER
+    filepath = os.path.join(folder, filename)
+
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=400, detail="File doesn't exists")
+
+    if name not in connected_printers:
+        await connect_printer(name)
+
+    gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
+    gcode = gcoder.LightGCode(gcode)
+
+    printer: printcore = connected_printers[name]
+    printer.startprint(gcode)
+    return utils.printer_status(printer)
+
+
+@app.post("/printers/{name}/pause/", response_model=models.PrinterStatus)
+async def printer_pause(name: str):
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+
+    printer: printcore = connected_printers[name]
+    printer.pause()
+    return utils.printer_status(printer)
+
+
+@app.post("/printers/{name}/resume/", response_model=models.PrinterStatus)
+async def printer_resume(name: str):
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+
+    printer: printcore = connected_printers[name]
+    printer.resume()
+    return utils.printer_status(printer)
+
+
+@app.post("/printers/{name}/stop/", response_model=models.PrinterStatus)
+async def printer_stop(name: str):
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+
+    printer: printcore = connected_printers[name]
+    printer.cancelprint()
+    return utils.printer_status(printer)
 
 
 @app.get("/file/list/", response_model=list[str])
-def list_files():
+async def list_files():
     folder = utils.GCODEFOLDER
     if not os.path.exists(folder):
         os.mkdir(folder)
@@ -77,7 +188,7 @@ def list_files():
 
 
 @app.post("/file/upload/", response_model=dict[str, bool])
-def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...)):
     if not file.filename.endswith(".gcode"):
         raise HTTPException(status_code=400, detail="File must be a .gcode file")
 
@@ -88,27 +199,4 @@ def upload_file(file: UploadFile = File(...)):
     with open(os.path.join(folder, file.filename), "wb") as f:
         f.write(file.file.read())
 
-    return {"success": True}
-
-
-@app.post("/printer/start/")
-def printer_start(port: str, filename: str):
-    folder = utils.GCODEFOLDER
-    filepath = os.path.join(folder, filename)
-
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=400, detail="File doesn't exists")
-
-    if port not in connected_printers:
-        try:
-            connected_printers[port] = utils.PrinterSerial(port)
-        except ValueError as e:
-            logger.error(f"Failed to connect to printer: {e}")
-            raise HTTPException(status_code=400, detail=str(e))
-
-    printer = connected_printers[port]
-    printer.init_sd_card()
-    printer.upload_file(filepath, filename)
-    printer.select_sd_file(filename)
-    printer.start_print()
     return {"success": True}

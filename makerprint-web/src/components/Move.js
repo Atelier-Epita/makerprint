@@ -13,10 +13,9 @@ function Move() {
         console.log(state.printerName);
 
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/command`,
+            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/command/`,
             {
                 command: command,
-                port: state.printerName
             },
         )
             .then((res) => {
@@ -34,10 +33,16 @@ function Move() {
     }
 
     const handleSubmit = (e) => {
-        if (!state.printerName) return null;
-
         e.preventDefault();
-        sendCommand(formData.command);
+        if (!state.printerName) {
+            console.error("Printer name is not set.");
+            return;
+        }
+        if (!formData.command.trim()) {
+            console.error("Command is empty.");
+            return;
+        }
+        sendCommand(formData.command.trim());
         setFormData({ command: '' });
     }
 

@@ -1,37 +1,32 @@
-FROM ubuntu:24.04
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# this tag is the last one that works with wxpython 4.2.2
-ARG TAG=9ff2df639df093f251d6239f2635a007bf4287ea
-
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && \
-    apt-get dist-upgrade -y && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3.10 git python3-venv build-essential \
-        libgtk-3.0 libxxf86vm1 libsm6 libnotify4 libsdl2-2.0 \
+        git python3 python3-venv build-essential \
+        libxxf86vm1 libsm6 libnotify4 libsdl2-2.0 \
         cmake libdbus-1-dev libglib2.0-dev libpython3-dev \
         libxtst6 libgl1 libegl1 libglu1-mesa && \
-    rm -rf /var/lib/apt/lists/* 
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m venv /opt/venv 
+ENV PATH="/opt/venv/bin:$PATH"
 
-RUN mkdir -p /opt && cd /opt && \
-    python3 -m venv venv && \
-    . venv/bin/activate && \
-    git clone https://github.com/kliment/Printrun.git && \
-    cd Printrun && \
-    git checkout $TAG && \
-    python -m pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/wxPython-4.2.2-cp312-cp312-linux_x86_64.whl && \
-    python -m pip install .
+# install printcore and some utils
+WORKDIR /opt
+RUN git clone https://github.com/Atelier-Epita/Printrun-lite.git && \
+    cd Printrun-lite && \
+    git checkout printcore && \
+    python -m pip install --no-cache-dir .
 
+# install makerprint package
+WORKDIR /app
 COPY setup.py /app
+COPY makerprint/__init__.py /app/makerprint/__init__.py
+RUN pip install --no-cache-dir -e .
+
+# copy the rest of the code
 COPY makerprint/ /app/makerprint
 
-RUN . /opt/venv/bin/activate && \
-    cd /app && \
-    python -m pip install .
-
-COPY entrypoint .
-ENTRYPOINT "/app/entrypoint"
-
+CMD [ "makerprint", "--debug" ]

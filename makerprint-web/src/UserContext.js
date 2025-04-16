@@ -10,6 +10,7 @@ const initialState = {
     error: (200, null),
 };
 
+// TODO: refactor this to match printer status resp from backend
 export const ACTIONS = {
     SET_USER: "SET_USER",
     SET_PRINTERS: "SET_PRINTERS",
