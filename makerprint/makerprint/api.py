@@ -60,7 +60,7 @@ async def printer_status(name: str):
 @app.post("/printers/{name}/connect/", response_model=models.PrinterStatus)
 async def connect_printer(
     name: str,
-    baud: int = 115200,
+    baud: int = None,
 ):
     if name in connected_printers:
         logger.info(f"Printer {name} already connected")
