@@ -5,37 +5,27 @@ import { ACTIONS, useUserContext } from '../UserContext';
 function Status() {
     const [state, dispatch] = useUserContext();
 
-    const sendCommand = (command) => {
+    const getStatus = () => {
         if (!state.printerName) return null;
-
-        axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/command/`,
-            {
-                command: command,
-                port: state.printerName
-            },
+        axios.get(
+            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/`
         )
             .then((res) => {
-                const code = res.status;
-                const message = res.statusText;
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
-            })
-            .catch((err) => {
-                console.log(err);
+                if (res.status === 200) {
+                    const status = res.data.status;
+                }
             });
-    };
+    }
 
     const startPrinting = () => {
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printer/start/`,
+            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/start/`,
             {
                 filename: state.fileName,
-                port: state.printerName
             }
         )
             .then((res) => {
-                if (res.status === 200)
-                {
+                if (res.status === 200) {
                     dispatch({ type: ACTIONS.SET_STATUS, payload: "printing" });
                 }
                 else {
@@ -51,33 +41,75 @@ function Status() {
             });
     }
 
-    const stopPrinting = () => {
-        sendCommand("M0");
-        dispatch({ type: ACTIONS.SET_STATUS, payload: "idle" });
-    }
 
     const pausePrinting = () => {
         if (state.status === "printing") {
-            sendCommand("M25");
-            dispatch({ type: ACTIONS.SET_STATUS, payload: "paused" });
+            axios.post(
+                `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/pause/`,
+            )
+                .then((res) => {
+                    if (res.status === 200) {
+                        dispatch({ type: ACTIONS.SET_STATUS, payload: "paused" });
+                    }
+                    else {
+                        console.log(res);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
         }
         else if (state.status === "paused") {
-            sendCommand("M24");
-            dispatch({ type: ACTIONS.SET_STATUS, payload: "printing" });
+            axios.post(
+                `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/resume/`,
+            )
+                .then((res) => {
+                    if (res.status === 200) {
+                        dispatch({ type: ACTIONS.SET_STATUS, payload: "printing" });
+                    }
+                    else {
+                        console.log(res);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
         }
+    }
+
+    const stopPrinting = () => {
+        axios.post(
+            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/stop/`,
+        )
+            .then((res) => {
+                if (res.status === 200) {
+                    dispatch({ type: ACTIONS.SET_STATUS, payload: "idle" });
+                }
+                else {
+                    console.log(res);
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+            });
     }
 
     var disabled = !state.fileName || !state.printerName;
 
-    /* Send command to get status every 2 sec*/
-    useEffect(() => {
-        if (state.printerName) {
-            sendCommand("M27 S2");
-        }
-    }, [state.printerName]);
+    // /* Get status every 2 sec*/
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         if (!state.printerName) return null;
+    //         getStatus();
+    //     }, 2000);
+    //     return () => clearInterval(interval);
+    // }, [state.printerName]);
 
     useEffect(() => {
     }, [state.status]);
+
+    // console.log("Status: ", state.status);
+    // console.log("Progress: ", state.progress);
 
     return (
         <div className="menu-status">

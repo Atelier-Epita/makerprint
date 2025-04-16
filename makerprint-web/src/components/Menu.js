@@ -126,7 +126,7 @@ function Menu() {
     const [state, dispatch] = useUserContext();
 
     const onRefresh = () => {
-        axios.get(`${process.env.REACT_APP_API_URL}/printer/list/`)
+        axios.get(`${process.env.REACT_APP_API_URL}/printers/`)
             .then((res) => {
                 dispatch({ type: ACTIONS.SET_PRINTERS, payload: res.data });
             })

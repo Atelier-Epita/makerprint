@@ -29,4 +29,4 @@ RUN pip install --no-cache-dir -e .
 # copy the rest of the code
 COPY makerprint/ /app/makerprint
 
-CMD [ "makerprint" ]
+CMD [ "makerprint", "--debug" ]

@@ -44,7 +44,7 @@ if debug:
         })()
     ]
 
-    utils.logger.info(f"Mock list_ports: {device.port}")
+    utils.logger.info(f"Mock list_ports: {utils.list_ports()}")
 
 def main():
     config = Config()
