@@ -1,13 +1,11 @@
-FROM debian:bookworm-slim
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git python3 python3-venv build-essential \
-        libxxf86vm1 libsm6 libnotify4 libsdl2-2.0 \
-        cmake libdbus-1-dev libglib2.0-dev libpython3-dev \
-        libxtst6 libgl1 libegl1 libglu1-mesa && \
+        git build-essential python3-dev \
+        libdbus-1-dev libglib2.0-dev libxtst6 libgl1 libegl1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv /opt/venv 
@@ -28,5 +26,12 @@ RUN pip install --no-cache-dir -e .
 
 # copy the rest of the code
 COPY makerprint/ /app/makerprint
+
+FROM python:3.11-slim-bookworm
+WORKDIR /app
+
+ENV PATH="/opt/venv/bin:$PATH"
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app /app
 
 CMD [ "makerprint", "--debug" ]
