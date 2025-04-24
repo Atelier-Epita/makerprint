@@ -5,7 +5,6 @@ import { ACTIONS, useUserContext } from '../UserContext';
 function Status() {
     const [state, dispatch] = useUserContext();
 
-    // TODO: useEffect to get printer status every 5 seconds to update the progress etc.
     const getStatus = () => {
         axios.get(
             `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/`
@@ -15,6 +14,26 @@ function Status() {
                 dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: res.data });
             });
     }
+
+    // get status when changing printer
+    useEffect(() => {
+        if (state.printerName) {
+            getStatus();
+        }
+    }, [state.printerName]);
+
+    // get status every 5 seconds
+    // TODO: handle temperature and stuff
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (state.printerName) {
+                getStatus();
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [state.printerName]);
+
 
     const startPrinting = () => {
         axios.post(
@@ -70,7 +89,6 @@ function Status() {
             });
     }
 
-    var disabled = !state.fileName || !state.printerName;
     const status_text = state.status.connected ? state.status.printing ? "Printing" : state.status.paused ? "Paused" : "Idle" : "Disconnected";
 
     return (
@@ -92,15 +110,15 @@ function Status() {
             { /* buttons */}
             <div className="status-buttons">
                 <button onClick={startPrinting}
-                    disabled={disabled || state.status.printing || state.status.paused}>
+                    disabled={!state.fileName || !state.printerName || state.status.printing || state.status.paused}>
                     Start
                 </button>
                 <button onClick={pausePrinting}
-                    disabled={disabled || (!state.status.paused && !state.status.printing)}>
+                    disabled={!state.status.paused && !state.status.printing}>
                     {state.status.printing ? "Pause" : state.status.paused ? "Resume" : "Pause"}
                 </button>
                 <button onClick={stopPrinting}
-                    disabled={disabled || (!state.status.printing && !state.status.paused)}>
+                    disabled={!state.status.printing && !state.status.paused}>
                     Stop
                 </button>
             </div>

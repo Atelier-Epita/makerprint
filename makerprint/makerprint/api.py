@@ -54,7 +54,14 @@ async def printer_status(name: str):
         printer = connected_printers[name]
         return utils.printer_status(printer)
     else:
-        raise HTTPException(status_code=404, detail="Printer not connected")
+        return models.PrinterStatus(
+            connected=False,
+            port=utils.NAMES_TO_PORTS().get(name),
+            baud=0,
+            printing=False,
+            paused=False,
+            progress=0,
+        )
 
 
 @app.post("/printers/{name}/connect/", response_model=models.PrinterStatus)
