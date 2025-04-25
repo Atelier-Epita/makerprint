@@ -8,9 +8,15 @@ services:
     container_name: makerprint-api
     restart: unless-stopped
     volumes:
+      - /dev/bus/usb:/dev/bus/usb # for USB devices
       - ./data:/data
       - ./logs:/var/log
-      - /dev:/dev
+    cap_add:
+      - SYS_ADMIN
+      - MKNOD
+      - SYS_RAWIO
+    device_cgroup_rules:
+      - 'c 189:* rmw' # for /dev/ttyUSB*
     environment:
       - HOST=0.0.0.0
       - PORT=5000
