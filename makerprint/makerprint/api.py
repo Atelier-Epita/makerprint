@@ -56,7 +56,7 @@ async def printer_status(name: str):
     else:
         return models.PrinterStatus(
             connected=False,
-            port=utils.NAMES_TO_PORTS().get(name),
+            port=utils.NAMES_TO_PORTS().get(name, ""),
             baud=0,
             printing=False,
             paused=False,
