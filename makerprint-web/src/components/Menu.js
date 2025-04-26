@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { useUserContext, ACTIONS } from '../UserContext';
+import { useUserContext, initialState, ACTIONS } from '../UserContext';
 
 function FilesButton() {
     const [state, dispatch] = useUserContext();
@@ -150,8 +150,7 @@ function Menu() {
     const onClear = () => {
         dispatch({ type: ACTIONS.SET_PRINTER_NAME, payload: null });
         dispatch({ type: ACTIONS.SET_FILE_NAME, payload: null });
-        dispatch({ type: ACTIONS.SET_PROGRESS, payload: 0 });
-        dispatch({ type: ACTIONS.SET_STATUS, payload: "idle" });
+        dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: initialState.status });
     }
 
     return (

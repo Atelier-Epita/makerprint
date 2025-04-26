@@ -10,7 +10,6 @@ function Move() {
 
     const sendCommand = (command) => {
         if (!state.printerName) return null;
-        console.log(state.printerName);
 
         axios.post(
             `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/command/`,
@@ -19,9 +18,7 @@ function Move() {
             },
         )
             .then((res) => {
-                const code = res.status;
-                const message = res.statusText;
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [code, message] });
+                dispatch({ type: ACTIONS.SET_ERROR, payload: [res.status, res.statusText] });
             })
             .catch((err) => {
                 console.log(err);

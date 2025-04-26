@@ -15,7 +15,6 @@ LOGLEVEL = os.environ.get("LOGLEVEL", "DEBUG").upper()
 LOGPATH = os.environ.get("LOGPATH", "log.txt")
 GCODEFOLDER = os.environ.get("GCODEFOLDER", "data")
 BAUDRATES = [
-    115200,
     250000,
 ]
 
@@ -33,20 +32,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def list_ports():
-    return [device.device for device in serial.tools.list_ports.comports()]
+NAMES_TO_PORTS = lambda: {
+    device.name: device.device for device in serial.tools.list_ports.comports()
+}
 
-def list_names():
-    return [device.name for device in serial.tools.list_ports.comports()]
+NAMES_TO_DESCRIPTION = lambda: {
+    device.name: device.description for device in serial.tools.list_ports.comports()
+}
 
-NAMES_TO_PORTS = lambda: {device.name: device.device for device in serial.tools.list_ports.comports()}
 
 def printer_status(p: printcore):
+    progress = 0
+    if p.mainqueue:
+        (progress, _) = p.mainqueue.idxs(p.queueindex)
+
     return models.PrinterStatus(
         connected=p.online,
         port=p.port,
         baud=p.baud,
         printing=p.printing,
         paused=p.paused,
-        progress=p.queueindex # TOFIX
+        progress=(
+            progress
+        ),
     )
