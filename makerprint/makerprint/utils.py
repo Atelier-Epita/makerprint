@@ -42,6 +42,10 @@ NAMES_TO_DESCRIPTION = lambda: {
 
 
 def printer_status(p: printcore):
+    progress = 0
+    if p.mainqueue:
+        (progress, _) = p.mainqueue.idxs(p.queueindex)
+
     return models.PrinterStatus(
         connected=p.online,
         port=p.port,
@@ -49,8 +53,6 @@ def printer_status(p: printcore):
         printing=p.printing,
         paused=p.paused,
         progress=(
-            int(p.lineno * 100 / p.queueindex)
-            if p.queueindex > 0 and (p.printing or p.paused)
-            else 0
+            progress
         ),
     )

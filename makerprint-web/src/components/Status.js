@@ -6,6 +6,10 @@ function Status() {
     const [state, dispatch] = useUserContext();
 
     const getStatus = () => {
+        if (!state.printerName) {
+            return;
+        }
+
         axios.get(
             `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/`
         )
@@ -17,18 +21,14 @@ function Status() {
 
     // get status when changing printer
     useEffect(() => {
-        if (state.printerName) {
-            getStatus();
-        }
+        getStatus();
     }, [state.printerName]);
 
     // get status every 5 seconds
     // TODO: handle temperature and stuff
     useEffect(() => {
         const interval = setInterval(() => {
-            if (state.printerName) {
-                getStatus();
-            }
+            getStatus();
         }, 5000);
 
         return () => clearInterval(interval);

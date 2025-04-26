@@ -77,7 +77,7 @@ class MockPrinter:
             return "X:0.00 Y:0.00 Z:0.00 E:0.00 Count X:0 Y:0 Z:0"
         else:
             # sleep for a bit to simulate movement or processing time
-            time.sleep(0.1)
+            time.sleep(0.01)
             return "ok"  # Default reply
 
 
