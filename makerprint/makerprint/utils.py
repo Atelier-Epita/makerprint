@@ -32,16 +32,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def list_ports():
-    return [device.device for device in serial.tools.list_ports.comports()]
-
-
-def list_names():
-    return [device.name for device in serial.tools.list_ports.comports()]
-
-
 NAMES_TO_PORTS = lambda: {
     device.name: device.device for device in serial.tools.list_ports.comports()
+}
+
+NAMES_TO_DESCRIPTION = lambda: {
+    device.name: device.description for device in serial.tools.list_ports.comports()
 }
 
 

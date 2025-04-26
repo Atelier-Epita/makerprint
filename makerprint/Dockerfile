@@ -34,4 +34,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
 
-CMD [ "makerprint", "--debug" ]
+CMD [ "makerprint" ]
