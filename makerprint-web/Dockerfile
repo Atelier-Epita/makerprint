@@ -1,15 +1,17 @@
-FROM node:20.5.1-bullseye-slim AS builder
+FROM node:20.5.1-bullseye-slim AS dev
 WORKDIR /app
 
 ENV REACT_APP_API_URL="/api"
 # ENV REACT_APP_SOCKET_URL="/socket"
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY public public
 COPY src src
 
+FROM dev as builder
+WORKDIR /app
 RUN npm run build
 
 FROM node:20.5.1-bullseye-slim AS runtime

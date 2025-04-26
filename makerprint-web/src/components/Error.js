@@ -1,5 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect } from 'react';
 import { useUserContext, ACTIONS } from '../UserContext';
 
 function Error() {

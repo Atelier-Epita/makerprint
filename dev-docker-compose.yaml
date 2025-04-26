@@ -1,0 +1,59 @@
+services:
+  makerprint-api:
+    image: ghcr.io/atelier-epita/makerprint-api:latest
+    build:
+      context: makerprint
+      dockerfile: Dockerfile
+    
+    privileged: true
+    container_name: makerprint-api
+    restart: unless-stopped
+    devices:
+      - /dev:/dev
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log
+      - ./makerprint/makerprint:/app/makerprint
+    command: ["hypercorn", "--bind", "0.0.0.0:5000", "--reload", "makerprint.main:app"]
+    environment:
+      - GCODEFOLDER=/data
+      - LOGPATH=/var/log/makerprint.log
+      - LOGLEVEL=DEBUG
+      - DEBUG=true
+    networks:
+      - makerprint-net
+
+  makerprint-web:
+    image: ghcr.io/atelier-epita/makerprint-web:latest
+    build:
+      context: makerprint-web
+      dockerfile: Dockerfile
+      target: dev
+    
+    container_name: makerprint-web
+    restart: unless-stopped
+    networks:
+      - makerprint-net
+    volumes:
+      - ./makerprint-web/src:/app/src
+      - ./makerprint-web/public:/app/public
+    command: ["npm", "run", "start"]
+
+  nginx:
+    image: nginx:latest
+    container_name: makerprint-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/ssl/private
+    depends_on:
+      - makerprint-api
+      - makerprint-web
+    networks:
+      - makerprint-net
+
+networks:
+  makerprint-net:
+    driver: bridge

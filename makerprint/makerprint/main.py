@@ -1,4 +1,5 @@
-from . import api, utils
+from . import utils
+from .api import app
 
 import os
 import asyncio
@@ -30,7 +31,7 @@ if DEBUG:
         })()
     ]
 
-    utils.logger.info(f"Mock list_ports: {utils.NAMES_TO_PORTS().items()}")
+    utils.logger.info(f"Mock list_ports: {utils.NAMES_TO_PORTS()}")
 
 def main():
     config = Config()
@@ -40,4 +41,4 @@ def main():
     utils.logger.info(f"Starting server on {HOST}:{PORT}")
     utils.logger.info("Press Ctrl+C to quit.")
 
-    asyncio.run(serve(api.app, config))
+    asyncio.run(serve(app, config))
