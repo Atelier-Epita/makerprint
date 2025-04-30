@@ -7,3 +7,8 @@ class PrinterStatus(pydantic.BaseModel):
     printing: bool
     paused: bool
     progress: int
+    # optional
+    bed_temp: int | None = None
+    bed_temp_target: int | None = None
+    extruder_temp: int | None = None
+    extruder_temp_target: int | None = None

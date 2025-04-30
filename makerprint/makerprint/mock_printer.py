@@ -46,7 +46,7 @@ class MockPrinter:
             try:
                 buffer += os.read(self.__master, 64)
                 if buffer:
-                    logger.debug(f"Received buffer: {buffer}")
+                    # logger.debug(f"Received buffer: {buffer}")
                     lines = buffer.split(b'\n')
                     for line in lines[:-1]:
                         self.__handle_command(line.strip())
@@ -60,7 +60,7 @@ class MockPrinter:
             return
         
         response = self.__generate_response(command)
-        logger.debug(f"Sending response: {response}")
+        # logger.debug(f"Sending response: {response}")
         os.write(self.__master, response.encode('utf-8') + b'\n')
 
     def __generate_response(self, command: bytes) -> str:

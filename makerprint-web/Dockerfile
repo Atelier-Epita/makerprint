@@ -2,7 +2,7 @@ FROM node:20.5.1-bullseye-slim AS dev
 WORKDIR /app
 
 ENV REACT_APP_API_URL="/api"
-# ENV REACT_APP_SOCKET_URL="/socket"
+ENV REACT_APP_SOCKET_URL="/socket"
 
 COPY package.json package-lock.json ./
 RUN npm ci
