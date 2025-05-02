@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import re
 
 import serial
 import serial.tools.list_ports
@@ -41,18 +42,7 @@ NAMES_TO_DESCRIPTION = lambda: {
 }
 
 
-def printer_status(p: printcore):
-    progress = 0
-    if p.mainqueue:
-        (progress, _) = p.mainqueue.idxs(p.queueindex)
-
-    return models.PrinterStatus(
-        connected=p.online,
-        port=p.port,
-        baud=p.baud,
-        printing=p.printing,
-        paused=p.paused,
-        progress=(
-            progress
-        ),
-    )
+tempreport_exp = re.compile(r"([TB]\d*):([-+]?\d*\.?\d*)(?: ?\/)?([-+]?\d*\.?\d*)")
+def parse_temperature_report(report):
+    matches = tempreport_exp.findall(report)
+    return dict((m[0], (m[1], m[2])) for m in matches)

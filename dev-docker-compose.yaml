@@ -38,6 +38,8 @@ services:
       - ./makerprint-web/src:/app/src
       - ./makerprint-web/public:/app/public
     command: ["npm", "run", "start"]
+    ports: # for ws debug stuff
+      - "3000:3000"
 
   nginx:
     image: nginx:latest

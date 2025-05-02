@@ -90,6 +90,7 @@ function Status() {
     }
 
     const status_text = state.status.connected ? state.status.printing ? "Printing" : state.status.paused ? "Paused" : "Idle" : "Disconnected";
+    const temperature_text = (state.status.extruder_temp ? state.status.extruder_temp : "0") + "/" + (state.status.extruder_temp_target ? state.status.extruder_temp_target : "0") + "°C" + " " + (state.status.bed_temp ? state.status.bed_temp : "0") + "/" + (state.status.bed_temp_target ? state.status.bed_temp_target : "0") + "°C";
 
     return (
         <div className="menu-status">
@@ -100,6 +101,8 @@ function Status() {
                 <p>Printer: {state.printerName}</p>
                 <p>File: {state.fileName}</p>
                 <p>Status: {status_text}</p>
+                <p>Temperature: {temperature_text}</p>
+                <p>Progress: {state.status.progress ? `${state.status.progress}%` : "N/A"}</p>
             </div>
 
             { /* progress bar */}
