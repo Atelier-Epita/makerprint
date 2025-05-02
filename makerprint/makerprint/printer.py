@@ -67,10 +67,7 @@ class Printer(printcore):
     def get_status(self):
         progress = 0
         if self.mainqueue:
-            # (layer, _) = self.mainqueue.idxs(self.queueindex)
-            # (last_layer, _) = self.mainqueue.idxs(-1)
-            # progress = int(layer * 100 / last_layer)
-            progress = int(float(self.queueindex) / len(self.p.mainqueue) * 100)
+            progress = int(float(self.queueindex) / len(self.mainqueue) * 100)
 
         return models.PrinterStatus(
             connected=self.online,
