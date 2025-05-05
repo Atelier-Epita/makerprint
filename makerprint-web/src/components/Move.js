@@ -1,18 +1,19 @@
 import React, { useState, useCallback } from 'react';
 import axios from 'axios';
 import { ACTIONS, useUserContext } from '../UserContext';
+import styles from '../styles/Move.module.css';
+import { useParams } from 'react-router-dom';
 
 function Move() {
     const [state, dispatch] = useUserContext();
-    const [formData, setFormData] = useState({
-        command: '',
-    });
+    const [formData, setFormData] = useState({command: ''});
+    const printer_name = useParams().name;
 
     const sendCommand = (command) => {
-        if (!state.printerName) return null;
+        if (!printer_name) return null;
 
         axios.post(
-            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/command/`,
+            `${process.env.REACT_APP_API_URL}/printers/${printer_name}/command/`,
             {
                 command: command,
             },
@@ -31,10 +32,6 @@ function Move() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!state.printerName) {
-            console.error("Printer name is not set.");
-            return;
-        }
         if (!formData.command.trim()) {
             console.error("Command is empty.");
             return;
@@ -44,16 +41,16 @@ function Move() {
     }
 
     return (
-        <div className="menu-move">
+        <div className={styles.move}>
             <h2>Move</h2>
-            <div className="menu-move-buttons">
-                <button className="right-arrow" onClick={() => sendCommand("G1 X10")}></button>
-                <button className="yup-arrow" onClick={() => sendCommand("G1 Y10")}></button>
-                <button className="ydown-arrow" onClick={() => sendCommand("G1 Y-10")}></button>
-                <button className="left-arrow" onClick={() => sendCommand("G1 X-10")}></button>
-                <button className="zup-arrow" onClick={() => sendCommand("G1 Z10")}></button>
-                <button className="zdown-arrow" onClick={() => sendCommand("G1 Z-10")}></button>
-                <button className="home-button" onClick={() => sendCommand("G28")}></button>
+            <div className={styles.move_buttons}>
+                <button className={styles.right_arrow} onClick={() => sendCommand("G1 X10")}></button>
+                <button className={styles.yup_arrow} onClick={() => sendCommand("G1 Y10")}></button>
+                <button className={styles.ydown_arrow} onClick={() => sendCommand("G1 Y-10")}></button>
+                <button className={styles.left_arrow} onClick={() => sendCommand("G1 X-10")}></button>
+                <button className={styles.zup_arrow} onClick={() => sendCommand("G1 Z10")}></button>
+                <button className={styles.zdown_arrow} onClick={() => sendCommand("G1 Z-10")}></button>
+                <button className={styles.home_button} onClick={() => sendCommand("G28")}></button>
             </div>
             <form onSubmit={handleSubmit}>
                 <input

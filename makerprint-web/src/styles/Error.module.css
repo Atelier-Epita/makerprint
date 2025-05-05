@@ -1,0 +1,32 @@
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #ffaaaa;
+    font-size: 16px;
+    border-radius: 10px;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: height 0.5s, opacity 0.5s;
+}
+
+.visible-container {
+    padding: 10px;
+    margin: 10px;
+    opacity: 1;
+    height: auto;
+}
+
+.hidden-container {
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    height: 0;
+}
+
+.error-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

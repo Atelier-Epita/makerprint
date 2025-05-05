@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUserContext, ACTIONS } from '../UserContext';
+import styles from '../styles/Error.module.css';
 
 function Error() {
     const [state, dispatch] = useUserContext();
@@ -11,14 +12,14 @@ function Error() {
 
     if (!state.error || state.error[0] === 200) {
         return (
-            <div className="error-container hidden-container">
+            <div className={`${styles.errorContainer} ${styles.visibleContainer}`}>
             </div>
         );
     }
 
     return (
-        <div className="error-container visible-container">
-            <div className="error-message">
+        <div className={`${styles.errorContainer} ${styles.visibleContainer}`}>
+            <div className={styles.errorContent}>
                 <h2>Error</h2>
                 <p>{state.error[0]}: {state.error[1]}</p>
             </div>

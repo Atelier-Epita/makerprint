@@ -37,6 +37,10 @@ NAMES_TO_PORTS = lambda: {
     device.name: device.device for device in serial.tools.list_ports.comports()
 }
 
+PORTS_TO_NAMES = lambda: {
+    device.device: device.name for device in serial.tools.list_ports.comports()
+}
+
 NAMES_TO_DESCRIPTION = lambda: {
     device.name: device.description for device in serial.tools.list_ports.comports()
 }
@@ -46,3 +50,23 @@ tempreport_exp = re.compile(r"([TB]\d*):([-+]?\d*\.?\d*)(?: ?\/)?([-+]?\d*\.?\d*
 def parse_temperature_report(report):
     matches = tempreport_exp.findall(report)
     return dict((m[0], (m[1], m[2])) for m in matches)
+
+
+def create_mock_printer(i):
+    from .mock_printer import MockPrinter
+
+    device = MockPrinter()
+    device.open() # start the mock printer thread
+
+    logger.info(f"Mock serial port: {device.port}")
+
+    # Mock the serial port list
+    # This is a workaround to avoid modifying the original list_ports function
+    original_comports = serial.tools.list_ports.comports
+    serial.tools.list_ports.comports = lambda: original_comports() + [
+        type('FakePort', (), {
+            'device': device.port,
+            'name': f'Mock Printer {i}',
+            'description': f'Mock Printer Device {i}'
+        })()
+    ]
