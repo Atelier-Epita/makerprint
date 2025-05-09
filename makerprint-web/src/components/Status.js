@@ -16,19 +16,15 @@ function Status() {
         disconnectFromPrinter,
     } = usePrinterActions();
 
-    // why the fuck does this create some undifined stuff ??
-    // useEffect(() => {
-    //     if (!printer_name) return;
-    //     // getPrinterStatus(printer_name); // initial fetch
+    useEffect(() => {
+        if (!printer_name) return;
 
-    //     const interval = setInterval(() => {
-    //         getPrinterStatus(printer_name);
-    //     }, 5000);
+        const interval = setInterval(() => {
+            getPrinterStatus(printer_name);
+        }, 5000);
 
-    //     return () => clearInterval(interval);
-    // }, []);
-
-    console.log("status", state.status);
+        return () => clearInterval(interval);
+    }, [printer_name, getPrinterStatus]);
 
     const printer_status = state.status || {};
     const status_text = printer_status.connected

@@ -12,14 +12,14 @@ function Error() {
 
     if (!state.error || state.error[0] === 200) {
         return (
-            <div className={`${styles.errorContainer} ${styles.visibleContainer}`}>
+            <div className={`${styles.error_container} ${styles.visible_container}`}>
             </div>
         );
     }
 
     return (
-        <div className={`${styles.errorContainer} ${styles.visibleContainer}`}>
-            <div className={styles.errorContent}>
+        <div className={`${styles.error_container} ${styles.visible_container}`}>
+            <div className={styles.error_content}>
                 <h2>Error</h2>
                 <p>{state.error[0]}: {state.error[1]}</p>
             </div>

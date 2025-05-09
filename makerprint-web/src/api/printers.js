@@ -4,12 +4,12 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 export async function fetchPrinters() {
     const response = await axios.get(`${API_URL}/printers/`);
-    return response.data;
+    return response;
 }
 
 export async function fetchPrinterStatus(printer_name) {
     const response = await axios.get(`${API_URL}/printers/${printer_name}/`);
-    return response.data;
+    return response;
 }
 
 export async function startPrinter(printer_name, filename) {

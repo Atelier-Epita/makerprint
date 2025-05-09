@@ -118,16 +118,16 @@ async def connect_printer(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/printers/{name}/disconnect/", response_model=dict[str, bool])
+@app.post("/printers/{name}/disconnect/", response_model=models.PrinterStatus)
 async def disconnect_printer(name: str):
     if name not in connected_printers:
-        return {"success": True}
+        return await printer_status(name)
 
     printer: Printer = connected_printers[name]
     printer.disconnect()
     del connected_printers[name]
 
-    return {"success": True}
+    return await printer_status(name)
 
 
 @app.post("/printers/{name}/command/", response_model=models.PrinterStatus)

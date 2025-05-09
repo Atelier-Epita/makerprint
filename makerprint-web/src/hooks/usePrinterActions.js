@@ -26,8 +26,8 @@ export function usePrinterActions() {
 
     const refreshPrinters = async () => {
         try {
-            const printers = await fetchPrinters();
-            dispatch({ type: ACTIONS.SET_PRINTERS, payload: printers });
+            const res = await fetchPrinters();
+            dispatch({ type: ACTIONS.SET_PRINTERS, payload: res.data });
         } catch (err) {
             handleError(err);
         }

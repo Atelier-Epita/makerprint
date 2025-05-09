@@ -88,7 +88,7 @@ class Printer(printcore):
     def _status_thread(self):
         while self.online:
             self.send_now("M105")
-            threading.Event().wait(5)
+            threading.Event().wait(2)
 
     def status_thread(self):
         while self.statuscheck:

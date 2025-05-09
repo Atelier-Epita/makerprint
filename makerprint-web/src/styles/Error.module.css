@@ -1,4 +1,4 @@
-.error-container {
+.error_container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -11,21 +11,21 @@
     transition: height 0.5s, opacity 0.5s;
 }
 
-.visible-container {
+.visible_container {
     padding: 10px;
     margin: 10px;
     opacity: 1;
     height: auto;
 }
 
-.hidden-container {
+.hidden_container {
     padding: 0;
     margin: 0;
     opacity: 0;
     height: 0;
 }
 
-.error-content {
+.error_content {
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -94,7 +94,7 @@ body {
     gap: 10px;
 }
 
-.button_container>button {
+button {
     flex: 1;
     padding: 10px 0px;
     border: none;
@@ -107,23 +107,28 @@ body {
     font-size: 16px;
 }
 
-/* container adding padding and stuff with some separation between elements */
-.container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+input {
     padding: 10px;
-    margin: 10px;
-    border-radius: 10px;
-    background-color: #f4f4f4;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    font-size: 16px;
+    width: 100%;
 }
-    
+
 .container>div {
     padding: 10px;
-    border-radius: 5px;
-    background-color: #f4f4f4;
+    margin: 10px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    font-size: 16px;
+.vertical {
+    display: flex;
+    flex-direction: column;
+}
+
+.max_height {
+    max-height: 400px;
+    overflow-y: auto;
 }
