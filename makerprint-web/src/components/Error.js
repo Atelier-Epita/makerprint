@@ -12,7 +12,7 @@ function Error() {
 
     if (!state.error || state.error[0] === 200) {
         return (
-            <div className={`${styles.error_container} ${styles.visible_container}`}>
+            <div className={`${styles.error_container} ${styles.hidden_container}`}>
             </div>
         );
     }

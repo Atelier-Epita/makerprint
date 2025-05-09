@@ -14,7 +14,7 @@ function AppHeader() {
     <header className="app_header">
       <div className="app_header_content">
         <Link to="/" className="app_header_logo_link">
-          <img src="logo.png" alt="MakerPrint Logo" className="app_logo" />
+          <img src="/logo.png" alt="MakerPrint Logo" className="app_logo" />
         </Link>
         <h1 className="app_title">MakerPrint</h1>
       </div>
