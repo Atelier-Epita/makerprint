@@ -13,23 +13,8 @@ DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 if DEBUG:
     utils.logger.info("Debug mode enabled")
-    from .mock_printer import MockPrinter
-
-    device = MockPrinter()
-    device.open() # start the mock printer thread
-
-    utils.logger.info(f"Mock serial port: {device.port}")
-
-    # Mock the serial port list
-    # This is a workaround to avoid modifying the original list_ports function
-    original_comports = utils.serial.tools.list_ports.comports
-    utils.serial.tools.list_ports.comports = lambda: original_comports() + [
-        type('FakePort', (), {
-            'device': device.port,
-            'name': 'Mock Printer',
-            'description': 'Mock Printer Device'
-        })()
-    ]
+    for i in range(5):
+        utils.create_mock_printer(i)
 
     utils.logger.info(f"Mock list_ports: {utils.NAMES_TO_PORTS()}")
 

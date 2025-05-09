@@ -20,6 +20,8 @@ class Printer(printcore):
         self.bed_temp = None
         self.bed_temp_target = None
 
+        self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
+
         self.statuscheck = True
         self.status_thread = threading.Thread(
             target=self.status_thread,
@@ -72,6 +74,7 @@ class Printer(printcore):
         return models.PrinterStatus(
             connected=self.online,
             port=self.port,
+            name=self.name,
             baud=self.baud,
             printing=self.printing,
             paused=self.paused,
@@ -85,7 +88,7 @@ class Printer(printcore):
     def _status_thread(self):
         while self.online:
             self.send_now("M105")
-            threading.Event().wait(5)
+            threading.Event().wait(2)
 
     def status_thread(self):
         while self.statuscheck:

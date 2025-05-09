@@ -1,131 +1,91 @@
 import React, { useEffect } from 'react';
-import axios from 'axios';
+import { useParams } from 'react-router-dom';
 import { ACTIONS, useUserContext } from '../UserContext';
+import { usePrinterActions } from '../hooks/usePrinterActions'; // adjust path if necessary
+import styles from '../styles/Status.module.css';
 
 function Status() {
-    const [state, dispatch] = useUserContext();
+    const [state] = useUserContext();
+    const { name: printer_name } = useParams();
+    const {
+        startPrinting,
+        pausePrinting,
+        stopPrinting,
+        getPrinterStatus,
+        connectToPrinter,
+        disconnectFromPrinter,
+    } = usePrinterActions();
 
-    const getStatus = () => {
-        if (!state.printerName) {
-            return;
-        }
-
-        axios.get(
-            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/`
-        )
-            .then((res) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [res.status, res.statusText] });
-                dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: res.data });
-            });
-    }
-
-    // get status when changing printer
     useEffect(() => {
-        getStatus();
-    }, [state.printerName]);
+        if (!printer_name) return;
 
-    // get status every 5 seconds
-    // TODO: handle temperature and stuff
-    useEffect(() => {
         const interval = setInterval(() => {
-            getStatus();
+            getPrinterStatus(printer_name);
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [state.printerName]);
+    }, [printer_name, getPrinterStatus]);
 
+    const printer_status = state.status || {};
+    const status_text = printer_status.connected
+        ? printer_status.printing
+            ? 'Printing'
+            : printer_status.paused
+                ? 'Paused'
+                : 'Idle'
+        : 'Disconnected';
 
-    const startPrinting = () => {
-        axios.post(
-            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/start/`,
-            {
-                filename: state.fileName,
-            }
-        )
-            .then((res) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [res.status, res.statusText] });
-                dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: res.data });
-            })
-            .catch((err) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [err.name, err.code] });
-            });
-    }
-
-
-    const pausePrinting = () => {
-
-        let url;
-        if (state.status.printing) {
-            url = `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/pause/`;
-        }
-        else if (state.status.paused) {
-            url = `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/resume/`;
-        }
-        else {
-            console.log("Printer is not printing or paused");
-            return;
-        }
-
-        axios.post(url)
-            .then((res) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [res.status, res.statusText] });
-                dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: res.data });
-            })
-            .catch((err) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [err.name, err.code] });
-            });
-    }
-
-    const stopPrinting = () => {
-        axios.post(
-            `${process.env.REACT_APP_API_URL}/printers/${state.printerName}/stop/`,
-        )
-            .then((res) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [res.status, res.statusText] });
-                dispatch({ type: ACTIONS.SET_PRINTER_STATUS, payload: res.data });
-            })
-            .catch((err) => {
-                dispatch({ type: ACTIONS.SET_ERROR, payload: [err.name, err.code] });
-            });
-    }
-
-    const status_text = state.status.connected ? state.status.printing ? "Printing" : state.status.paused ? "Paused" : "Idle" : "Disconnected";
-    const temperature_text = (state.status.extruder_temp ? state.status.extruder_temp : "0") + "/" + (state.status.extruder_temp_target ? state.status.extruder_temp_target : "0") + "°C" + " " + (state.status.bed_temp ? state.status.bed_temp : "0") + "/" + (state.status.bed_temp_target ? state.status.bed_temp_target : "0") + "°C";
+    const temperature_text = `${printer_status.extruder_temp || 0}/${printer_status.extruder_temp_target || 0}°C ${printer_status.bed_temp || 0}/${printer_status.bed_temp_target || 0}°C`;
 
     return (
-        <div className="menu-status">
+        <div>
             <h2>Status</h2>
 
-            { /* status text */}
-            <div className="status-text">
-                <p>Printer: {state.printerName}</p>
+            <div className={styles.status_text}>
+                <p>Printer: {printer_name}</p>
                 <p>File: {state.fileName}</p>
                 <p>Status: {status_text}</p>
                 <p>Temperature: {temperature_text}</p>
-                <p>Progress: {state.status.progress ? `${state.status.progress}%` : "N/A"}</p>
+                <p>Progress: {printer_status.progress ? `${printer_status.progress}%` : 'N/A'}</p>
+                <div className={styles.progress_bar_container}>
+                    <div className={styles.progress_bar} style={{ width: `${printer_status.progress || 0}%` }}></div>
+                </div>
             </div>
 
-            { /* progress bar */}
-            <div className="progress-bar-container">
-                <div className="progress-bar" style={{ width: `${state.status.progress}%` }}></div>
-            </div>
-
-            { /* buttons */}
-            <div className="status-buttons">
-                <button onClick={startPrinting}
-                    disabled={!state.fileName || !state.printerName || state.status.printing || state.status.paused}>
+            <div className="button_container">
+                <button
+                    onClick={() => startPrinting(printer_name, state.fileName)}
+                    disabled={!state.fileName || !printer_name || printer_status.printing || printer_status.paused}
+                >
                     Start
                 </button>
-                <button onClick={pausePrinting}
-                    disabled={!state.status.paused && !state.status.printing}>
-                    {state.status.printing ? "Pause" : state.status.paused ? "Resume" : "Pause"}
+                <button
+                    onClick={() => pausePrinting(printer_name, printer_status)}
+                    disabled={!printer_status.paused && !printer_status.printing}
+                >
+                    {printer_status.printing ? 'Pause' : printer_status.paused ? 'Resume' : 'Pause'}
                 </button>
-                <button onClick={stopPrinting}
-                    disabled={!state.status.printing && !state.status.paused}>
+                <button
+                    onClick={() => stopPrinting(printer_name)}
+                    disabled={!printer_status.printing && !printer_status.paused}
+                >
                     Stop
                 </button>
-            </div>
 
+                {/* connect or disconnect button */}
+                <button
+                    onClick={() => {
+                        if (printer_status.connected) {
+                            disconnectFromPrinter(printer_name);
+                        } else {
+                            connectToPrinter(printer_name);
+                        }
+                    }}
+                    disabled={printer_status.printing || printer_status.paused}
+                >
+                    {printer_status.connected ? 'Disconnect' : 'Connect'}
+                </button>
+            </div>
         </div>
     );
 }

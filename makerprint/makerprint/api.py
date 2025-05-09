@@ -26,7 +26,6 @@ app.add_middleware(
 )
 
 
-# logs in fastapi
 @app.middleware("http")
 async def log_requests(request: fastapi.Request, call_next):
     logger.info(f"Request: {request.method} {request.url}")
@@ -40,9 +39,25 @@ async def index():
     return {"status": "ok"}
 
 
-@app.get("/printers/", response_model=list[str])
-async def list_printers_name():
-    return utils.NAMES_TO_PORTS().keys()
+# @app.get("/printers/", response_model=list[models.PrinterStatus])
+@app.get("/printers/", response_model=dict[str, models.PrinterStatus])
+async def list_printers():
+    printers = {}
+    for name, port in utils.NAMES_TO_PORTS().items():
+        if name in connected_printers:
+            printer: Printer = connected_printers[name]
+            printers[name] = printer.get_status()
+        else:
+            printers[name] = models.PrinterStatus(
+                connected=False,
+                port=port,
+                name=name,
+                baud=0,
+                printing=False,
+                paused=False,
+                progress=0,
+            )
+    return printers
 
 
 @app.get("/printers/{name}/", response_model=models.PrinterStatus)
@@ -54,6 +69,7 @@ async def printer_status(name: str):
         return models.PrinterStatus(
             connected=False,
             port=utils.NAMES_TO_PORTS().get(name, ""),
+            name=name,
             baud=0,
             printing=False,
             paused=False,
@@ -68,7 +84,7 @@ async def connect_printer(
 ):
     if name in connected_printers:
         logger.info(f"Printer {name} already connected")
-        return connected_printers[name].status
+        return connected_printers[name].get_status()
 
     port = utils.NAMES_TO_PORTS().get(name)
     if not port:
@@ -102,16 +118,16 @@ async def connect_printer(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/printers/{name}/disconnect/", response_model=dict[str, bool])
+@app.post("/printers/{name}/disconnect/", response_model=models.PrinterStatus)
 async def disconnect_printer(name: str):
     if name not in connected_printers:
-        return {"success": True}
+        return await printer_status(name)
 
     printer: Printer = connected_printers[name]
     printer.disconnect()
     del connected_printers[name]
 
-    return {"success": True}
+    return await printer_status(name)
 
 
 @app.post("/printers/{name}/command/", response_model=models.PrinterStatus)
