@@ -34,6 +34,11 @@ function Printer({ printerState, onClick, disabled }) {
                     className={styles.printer_icon}
                 />
                 <span className={styles.printer_name}>{name}</span>
+                {connected && (
+                    <span>
+                        {printing ? `${Math.round(progress)}%` : paused ? 'Paused' : 'Idle'}
+                    </span>
+                )}
             </button>
         </div>
     );
