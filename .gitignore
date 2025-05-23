@@ -130,5 +130,5 @@ dmypy.json
 
 # makerprint
 3dprint
-logs
-data
+logs/
+data/

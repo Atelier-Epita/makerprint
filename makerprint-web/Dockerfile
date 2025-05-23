@@ -7,8 +7,13 @@ ENV REACT_APP_SOCKET_URL="/socket"
 COPY package.json package-lock.json ./
 RUN npm ci
 
+COPY index.html .
 COPY public public
 COPY src src
+COPY vite.config.ts .
+COPY tsconfig*.json .
+COPY tailwind.config.ts .
+COPY postcss.config.js .
 
 FROM dev as builder
 WORKDIR /app
@@ -18,8 +23,8 @@ FROM node:20.5.1-bullseye-slim AS runtime
 
 WORKDIR /app
 RUN npm install -g serve
-COPY --from=builder /app/build ./build
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD [ "serve", "-s", "build", "-l", "3000" ]
+CMD [ "serve", "-s", "dist", "-l", "3000" ]
