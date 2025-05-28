@@ -26,10 +26,8 @@ export async function pausePrinter(printer_name, pausing) {
     let url;
     if (pausing) {
         url = `${API_URL}/printers/${printer_name}/pause/`;
-    } else if (printer_status.paused) {
-        url = `${API_URL}/printers/${printer_name}/resume/`;
     } else {
-        throw new Error("Printer is not printing or paused");
+        url = `${API_URL}/printers/${printer_name}/resume/`;
     }
     const response = await axios.post(url);
     return response;

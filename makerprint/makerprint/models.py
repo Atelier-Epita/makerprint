@@ -19,7 +19,6 @@ class PrinterStatus(pydantic.BaseModel):
     name: str
     baud: int
     progress: NUMBER = 0
-
-    # defaults for temperature readings
+    currentFile: Optional[str] = None
     bedTemp: Optional[BedTemp] = BedTemp(current=0, target=0)
     nozzleTemp: Optional[NozzleTemp] = NozzleTemp(current=0, target=0)

@@ -19,7 +19,7 @@ services:
       - GCODEFOLDER=/data
       - LOGPATH=/var/log/makerprint.log
       - LOGLEVEL=DEBUG
-      - DEBUG=true
+      - DEBUG=false
     networks:
       - makerprint-net
 

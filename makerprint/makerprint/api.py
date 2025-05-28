@@ -68,6 +68,8 @@ async def printer_status(name: str):
             name=name,
             baud=0,
             progress=0,
+            bedTemp=models.BedTemp(current=0, target=0),
+            nozzleTemp=models.NozzleTemp(current=0, target=0),
         )
     else:
         raise HTTPException(status_code=404, detail="Printer not found")

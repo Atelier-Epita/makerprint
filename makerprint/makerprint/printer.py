@@ -22,6 +22,7 @@ class Printer(printcore):
         self.bed_temp_target = 0 
 
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
+        self.current_file = None
 
         self.statuscheck = True
         self.status_thread = threading.Thread(
@@ -41,6 +42,7 @@ class Printer(printcore):
                 detail=f"File {filename} not found in {folder}",
             )
 
+        self.current_file = filename
         gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
         gcode = gcoder.LightGCode(gcode)
         return gcode
@@ -84,6 +86,7 @@ class Printer(printcore):
             baud=self.baud,
             paused=self.paused,
             progress=progress,
+            currentFile=self.current_file,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target
             ),

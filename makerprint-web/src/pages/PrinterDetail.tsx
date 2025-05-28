@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { files } from "@/data/printers";
+import { useFiles } from '@/hooks/useFiles.ts';
 import {
   ArrowLeft, ArrowRight, ArrowUp, ArrowDown,
   Home, Play, Pause, CircleStop, Plug, RefreshCcw,
@@ -23,6 +23,7 @@ const PrinterDetail = () => {
 
   const { status, loading, error } = usePrinterStatus(name);
   const { start, stop, pauseOrResume, connect, disconnect, sendCommand } = usePrinterActions();
+  const { files, loading: filesLoading, error: filesError, upload, refreshFiles } = useFiles();
 
   useEffect(() => {
     if (!name) {
@@ -94,15 +95,15 @@ const PrinterDetail = () => {
   const getButtonVariant = (buttonType: 'start' | 'pause' | 'stop' | 'connect') => {
     const { status } = printer;
 
-    if (buttonType === 'start' && status !== 'printing') {
+    if (buttonType === 'start' && status === 'idle') {
       return 'default';
     }
 
     if (buttonType === 'pause' && (status === 'printing' || status === 'paused')) {
-      return 'secondary';
+      return 'default';
     }
 
-    if (buttonType === 'stop' && status === 'printing') {
+    if (buttonType === 'stop' && (status === 'printing' || status === 'paused')) {
       return 'destructive';
     }
 
@@ -157,8 +158,8 @@ const PrinterDetail = () => {
     }
     else if (printer.status === 'paused') {
       pauseOrResume(name, false)
-        .then((data) => {
-          setPrinter(data);
+        .then((resp) => {
+          setPrinter(resp.data);
         }).catch((error) => {
           console.error('Error resuming print:', error);
         });
@@ -166,10 +167,6 @@ const PrinterDetail = () => {
   };
 
   const handleStop = () => {
-    if (printer.status !== 'printing') {
-      return;
-    }
-
     stop(name)
       .then((resp) => {
         setPrinter(resp.data);
@@ -194,25 +191,21 @@ const PrinterDetail = () => {
     const command = `${axis}${direction > 0 ? '' : '-'}${scale}`;
     const gcodeCommand = `${START_GCODE}; ${command} ${END_GCODE}`;
     sendCommand(name, gcodeCommand)
-      .then((data) => {
-        setPrinter(data);
+      .then((resp) => {
+        setPrinter(resp.data);
       }
       ).catch((error) => {
         console.error(`Error moving ${axis} axis:`, error);
       }
-    );
+      );
   };
 
   const handleHome = () => {
-    if (printer.status === 'disconnected' || isMovementDisabled(printer.status)) {
-      console.warn('Cannot home printer while disconnected or during print');
-      return;
-    }
-
     const command = 'G28'; // G-code command to home all axes
     sendCommand(name, command)
-      .then((data) => {
-        setPrinter(data);
+      .then((resp) => {
+
+        setPrinter(resp.data);
       })
       .catch((error) => {
         console.error('Error homing printer:', error);
@@ -227,9 +220,8 @@ const PrinterDetail = () => {
       return;
     }
     sendCommand(name, command)
-      .then((data) => {
-        console.log('Command sent:', command);
-        setPrinter(data);
+      .then((resp) => {
+        setPrinter(resp.data);
       })
       .catch((error) => {
         console.error('Error sending command:', error);
@@ -445,13 +437,13 @@ const PrinterDetail = () => {
                   disabled={printer.status !== 'printing' && printer.status !== 'paused'}
                   onClick={handlePause}
                 >
-                  <Pause className="mr-2 h-4 w-4" />
+                  {printer.status === 'printing' ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
                   {printer.status === 'printing' ? 'Pause' : 'Resume'}
                 </Button>
                 <Button
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('stop')}
-                  disabled={printer.status !== 'printing'}
+                  disabled={printer.status !== 'printing' && printer.status !== 'paused'}
                   onClick={handleStop}
                 >
                   <CircleStop className="mr-2 h-4 w-4" />
@@ -580,30 +572,42 @@ const PrinterDetail = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {files.length === 0 ? (
+              {filesLoading ? (
+                <p className="text-center text-muted-foreground py-6">Loading files...</p>
+              ) : filesError ? (
+                <p className="text-center text-red-500 py-6">Error loading files: {filesError}</p>
+              ) : null}
+              {files && files.length === 0 && !filesLoading && !filesError ?
                 <p className="text-center text-muted-foreground py-6">No files available</p>
-              ) : (
+                : null}
+              {files && files.length > 0 && (
                 files.map((file, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-md flex justify-between items-center border border-transparent transition-all duration-300 ${file === printer.currentFile
+                    className={`p-4 rounded-md flex justify-between items-center border border-transparent transition-all duration-300 ${file === selectedFile
                       ? 'bg-secondary shadow-inner'
                       : 'hover:bg-secondary/30 hover:border-gray-200'
                       }`}
                   >
                     <div className="flex items-center">
-                      <File className={`mr-3 h-5 w-5 ${file === printer.currentFile ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <File className={`mr-3 h-5 w-5 ${file === selectedFile ? 'text-blue-600' : 'text-gray-400'}`} />
                       <span className="font-medium truncate">{file}</span>
                     </div>
                     {printer.status !== 'disconnected' && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={file === printer.currentFile ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : ''}
-                        disabled={printer.status === 'printing' && file === printer.currentFile}
-                        onClick={() => setSelectedFile(file)}
+                        className={file === selectedFile ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : ''}
+                        disabled={printer.status === 'printing' && file === selectedFile}
+                        onClick={() => {
+                          if (file === selectedFile) {
+                            setSelectedFile(null);
+                          } else {
+                            setSelectedFile(file);
+                          }
+                        }}
                       >
-                        {file === printer.currentFile ? 'Selected' : 'Select'}
+                        {file === selectedFile ? 'Selected' : 'Select'}
                       </Button>
                     )}
                   </div>
@@ -615,7 +619,7 @@ const PrinterDetail = () => {
               <Button
                 variant="outline"
                 className="w-full shadow-sm hover:shadow-md transition-all duration-300"
-                disabled={printer.status === 'disconnected'}
+                onClick={refreshFiles}
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Refresh Files
@@ -624,9 +628,26 @@ const PrinterDetail = () => {
               <Button
                 className="w-full shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600"
                 disabled={printer.status === 'disconnected'}
+                onClick={() => {
+                  const fileInput = document.createElement('input');
+                  fileInput.type = 'file';
+                  fileInput.accept = '.gcode,.gco,.g,.gcode.gz';
+                  fileInput.multiple = true;
+                  fileInput.onchange = (e) => {
+                    const files = (e.target as HTMLInputElement).files;
+                    if (files) {
+                      Array.from(files).forEach((file) => {
+                        upload(file);
+                      });
+                    }
+                  };
+                  fileInput.click();
+                }}
               >
-                Upload a file
+                <File className="mr-2 h-4 w-4" />
+                Upload File
               </Button>
+
             </div>
           </CardContent>
         </Card>
