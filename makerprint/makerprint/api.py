@@ -49,12 +49,9 @@ async def list_printers():
             printers[name] = printer.get_status()
         else:
             printers[name] = models.PrinterStatus(
-                connected=False,
                 port=port,
                 name=name,
                 baud=0,
-                printing=False,
-                paused=False,
                 progress=0,
             )
     return printers
@@ -65,16 +62,17 @@ async def printer_status(name: str):
     if name in connected_printers:
         printer: Printer = connected_printers[name]
         return printer.get_status()
-    else:
+    elif name in utils.NAMES_TO_PORTS():
         return models.PrinterStatus(
-            connected=False,
             port=utils.NAMES_TO_PORTS().get(name, ""),
             name=name,
             baud=0,
-            printing=False,
-            paused=False,
             progress=0,
+            bedTemp=models.BedTemp(current=0, target=0),
+            nozzleTemp=models.NozzleTemp(current=0, target=0),
         )
+    else:
+        raise HTTPException(status_code=404, detail="Printer not found")
 
 
 @app.post("/printers/{name}/connect/", response_model=models.PrinterStatus)
@@ -149,6 +147,8 @@ async def printer_command(name: str, data: dict = Body(...)):
 @app.post("/printers/{name}/start/", response_model=models.PrinterStatus)
 async def printer_start(name: str, data: dict = Body(...)):
     filename = data.get("filename")
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename cannot be empty")
 
     if name not in connected_printers:
         await connect_printer(name)

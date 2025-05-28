@@ -18,7 +18,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/printer/:id" element={<PrinterDetail />} />
+          <Route path="/printer/:name" element={<PrinterDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

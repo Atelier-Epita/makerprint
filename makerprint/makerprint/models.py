@@ -1,15 +1,24 @@
 import pydantic
+from typing import Optional
+
+NUMBER = Optional[float | int]
+
+
+class NozzleTemp(pydantic.BaseModel):
+    current: NUMBER = 0
+    target: NUMBER = 0
+
+class BedTemp(pydantic.BaseModel):
+    current: NUMBER = 0
+    target: NUMBER = 0
+
 
 class PrinterStatus(pydantic.BaseModel):
-    connected: bool
+    status: str = "disconnected"  # idle, printing, paused, disconnected
     port: str
     name: str
     baud: int
-    printing: bool
-    paused: bool
-    progress: int | float
-    # optional
-    bed_temp: float | None = None
-    bed_temp_target: float | None = None
-    extruder_temp: float | None = None
-    extruder_temp_target: float | None = None
+    progress: NUMBER = 0
+    currentFile: Optional[str] = None
+    bedTemp: Optional[BedTemp] = BedTemp(current=0, target=0)
+    nozzleTemp: Optional[NozzleTemp] = NozzleTemp(current=0, target=0)
