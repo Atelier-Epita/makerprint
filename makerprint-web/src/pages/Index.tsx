@@ -5,12 +5,7 @@ import PrinterCard from "@/components/PrinterCard";
 import { usePrinters } from "@/hooks/usePrinters";
 
 const Index = () => {
-  const { printers, loading, error } = usePrinters();
-
-  const refreshPrinters = () => {
-    console.log("Refreshing printer status...");
-    // TODO : possibilité d'ajouter une fonction pour rafraîchir via une autre API
-  };
+  const { printers, loading, error, refreshPrinters } = usePrinters();
 
   return (
       <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
