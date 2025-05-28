@@ -19,7 +19,6 @@ export const files = [
 
 
 export interface Printer {
-  id: string;
   name: string;
   status: PrinterStatus;
   nozzleTemp: {
@@ -39,7 +38,6 @@ export interface Printer {
 // Mock data for printers
 export const printers: Printer[] = [
   {
-    id: '1',
     name: 'Mock Printer 0',
     status: 'printing',
     nozzleTemp: {
@@ -56,7 +54,6 @@ export const printers: Printer[] = [
     timeRemaining: 120,
   },
   {
-    id: '2',
     name: 'Mock Printer 1',
     status: 'idle',
     nozzleTemp: {
@@ -69,7 +66,6 @@ export const printers: Printer[] = [
     },
   },
   {
-    id: '3',
     name: 'Mock Printer 2',
     status: 'disconnected',
     nozzleTemp: {
@@ -82,7 +78,6 @@ export const printers: Printer[] = [
     },
   },
   {
-    id: '4',
     name: 'Mock Printer 3',
     status: 'printing',
     nozzleTemp: {
@@ -99,7 +94,6 @@ export const printers: Printer[] = [
     timeRemaining: 45,
   },
   {
-    id: '5',
     name: 'Mock Printer 4',
     status: 'error',
     nozzleTemp: {
@@ -116,7 +110,6 @@ export const printers: Printer[] = [
     timeRemaining: 0,
   },
   {
-    id: '6',
     name: 'Maxime = GROS ZIZI',
     status: 'printing',
     nozzleTemp: {

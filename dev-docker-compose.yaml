@@ -29,7 +29,9 @@ services:
       context: makerprint-web
       dockerfile: Dockerfile
       target: dev
-    
+    environment:
+      - VITE_API_URL=/api
+      - VITE_SOCKET_URL=/socket
     container_name: makerprint-web
     restart: unless-stopped
     networks:
@@ -37,7 +39,7 @@ services:
     volumes:
       - ./makerprint-web/src:/app/src
       - ./makerprint-web/public:/app/public
-    command: ["npm", "run", "start"]
+    command: ["npm", "run", "dev"]
     ports: # for ws debug stuff
       - "3000:3000"
 

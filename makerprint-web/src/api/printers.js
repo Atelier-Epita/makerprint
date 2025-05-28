@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.REACT_APP_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export async function fetchPrinters() {
     const response = await axios.get(`${API_URL}/printers/`);
@@ -22,9 +22,9 @@ export async function stopPrinter(printer_name) {
     return response;
 }
 
-export async function pausePrinter(printer_name, printer_status) {
+export async function pausePrinter(printer_name, pausing) {
     let url;
-    if (printer_status.printing) {
+    if (pausing) {
         url = `${API_URL}/printers/${printer_name}/pause/`;
     } else if (printer_status.paused) {
         url = `${API_URL}/printers/${printer_name}/resume/`;
@@ -42,5 +42,13 @@ export async function connectPrinter(printer_name) {
 
 export async function disconnectPrinter(printer_name) {
     const response = await axios.post(`${API_URL}/printers/${printer_name}/disconnect/`);
+    return response;
+}
+
+export async function sendCommand(printer_name, command) {
+    if (!printer_name || !command) {
+        throw new Error("Printer name and command are required");
+    }
+    const response = await axios.post(`${API_URL}/printers/${printer_name}/command/`, { command });
     return response;
 }

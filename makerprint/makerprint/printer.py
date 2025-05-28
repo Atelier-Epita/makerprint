@@ -4,6 +4,7 @@ import threading
 
 from printrun.printcore import printcore
 from printrun import gcoder
+from fastapi import HTTPException
 
 from . import utils, models
 from .utils import logger
@@ -15,10 +16,10 @@ class Printer(printcore):
         self.tempcb = self._tempcb
 
         # status stuff
-        self.extruder_temp = None
-        self.extruder_temp_target = None
-        self.bed_temp = None
-        self.bed_temp_target = None
+        self.extruder_temp = 0 
+        self.extruder_temp_target = 0 
+        self.bed_temp = 0 
+        self.bed_temp_target = 0 
 
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
 
@@ -35,7 +36,10 @@ class Printer(printcore):
         folder = utils.GCODEFOLDER
         filepath = os.path.join(folder, filename)
         if not os.path.exists(filepath):
-            raise FileNotFoundError(f"File {filepath} doesn't exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"File {filename} not found in {folder}",
+            )
 
         gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
         gcode = gcoder.LightGCode(gcode)
@@ -71,18 +75,21 @@ class Printer(printcore):
         if self.mainqueue:
             progress = int(float(self.queueindex) / len(self.mainqueue) * 100)
 
+        status = 'printing' if self.printing else 'paused' if self.paused else 'idle'
+
         return models.PrinterStatus(
-            connected=self.online,
+            status=status,
             port=self.port,
             name=self.name,
             baud=self.baud,
-            printing=self.printing,
             paused=self.paused,
             progress=progress,
-            bed_temp=self.bed_temp,
-            bed_temp_target=self.bed_temp_target,
-            extruder_temp=self.extruder_temp,
-            extruder_temp_target=self.extruder_temp_target,
+            bedTemp=models.BedTemp(
+                current=self.bed_temp, target=self.bed_temp_target
+            ),
+            nozzleTemp=models.NozzleTemp(
+                current=self.extruder_temp, target=self.extruder_temp_target
+            ),
         )
 
     def _status_thread(self):

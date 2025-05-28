@@ -121,7 +121,7 @@ const PrinterCard: React.FC<PrinterCardProps> = ({ printer }) => {
       <CardFooter className="p-4 pt-0">
         <Button 
           className="w-full font-medium hover:bg-primary/90 transition-all duration-300 group-hover:translate-y-0 translate-y-0 group-hover:shadow-md" 
-          onClick={() => navigate(`/printer/${printer.id}`)}
+          onClick={() => navigate(`/printer/${printer.name}`)}
         >
           View Details
         </Button>

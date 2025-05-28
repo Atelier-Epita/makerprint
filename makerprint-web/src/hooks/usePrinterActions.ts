@@ -4,6 +4,7 @@ import {
     pausePrinter,
     connectPrinter,
     disconnectPrinter,
+    sendCommand,
 } from '@/api/printers';
 
 export function usePrinterActions() {
@@ -13,5 +14,6 @@ export function usePrinterActions() {
         pauseOrResume: pausePrinter,
         connect: connectPrinter,
         disconnect: disconnectPrinter,
+        sendCommand: sendCommand,
     };
 }
