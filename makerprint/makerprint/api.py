@@ -138,9 +138,13 @@ async def printer_command(name: str, data: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Printer not connected")
     if not command:
         raise HTTPException(status_code=400, detail="Command cannot be empty")
-
     printer: Printer = connected_printers[name]
-    printer.send_now(command)
+
+    # split commandes by semicolon and strip whitespace
+    commands = [cmd.strip() for cmd in command.split(";") if cmd.strip()]
+    for cmd in commands:
+        printer.send_now(cmd)
+
     return printer.get_status()
 
 
