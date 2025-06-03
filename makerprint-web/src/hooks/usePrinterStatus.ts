@@ -16,10 +16,13 @@ export function usePrinterStatus(printerName?: string) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const refreshStatus = async () => {
+    const refreshStatus = async (hotReload = true) => {
         if (!printerName) return;
-        setLoading(true);
-        setError(null);
+        if (!hotReload) {
+            setLoading(true);
+            setError(null);
+        }
+
         fetchPrinterStatus(printerName)
             .then(res => setStatus(res.data))
             .catch(err => setError(err.message || 'Erreur inconnue'))
@@ -28,7 +31,7 @@ export function usePrinterStatus(printerName?: string) {
 
     useEffect(() => {
         if (printerName) {
-            refreshStatus();
+            refreshStatus(false);
         }
     }, [printerName]);
 
@@ -97,11 +100,11 @@ export function usePrinterStatus(printerName?: string) {
 
     const sendCommand = async (name: string, gcodeCommand: string) => {
         sendCmd(name, gcodeCommand)
-        .then((resp) => {
-            setStatus(resp.data);
-        }).catch((error) => {
-            console.error(`Error executing command ${gcodeCommand} on printer ${name}:`, error);
-        });
+            .then((resp) => {
+                setStatus(resp.data);
+            }).catch((error) => {
+                console.error(`Error executing command ${gcodeCommand} on printer ${name}:`, error);
+            });
     }
 
     const actions = {

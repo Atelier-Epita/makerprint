@@ -15,6 +15,7 @@ class Printer(printcore):
         super().__init__(*args, **kwargs)
         self.tempcb = self._tempcb
         self.startcb = self._startcb
+        self.endcb = self._endcb
 
         # status stuff
         self.extruder_temp = 0 
@@ -52,6 +53,11 @@ class Printer(printcore):
     def _startcb(self, resuming = False):
         if not resuming:
             self.start_time = time.time()
+
+    def _endcb(self):
+        time_string = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.start_time))
+        logger.info(f"Print finished on {self.name} in {time_string}")
+        self.start_time = None
 
     def _tempcb(self, tempstr):
         temps = utils.parse_temperature_report(tempstr)
