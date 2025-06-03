@@ -23,8 +23,7 @@ export async function stopPrinter(printer_name) {
 }
 
 export async function pausePrinter(printer_name) {
-    url = `${API_URL}/printers/${printer_name}/pause/`;
-    const response = await axios.post(url);
+    const response = await axios.post(`${API_URL}/printers/${printer_name}/pause/`);
     return response;
 }
 

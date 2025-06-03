@@ -9,7 +9,6 @@ import {
     sendCmd,
     fetchPrinterStatus,
 } from '@/api/printers';
-import { data } from 'react-router-dom';
 
 
 export function usePrinterStatus(printerName?: string) {
@@ -31,6 +30,16 @@ export function usePrinterStatus(printerName?: string) {
         if (printerName) {
             refreshStatus();
         }
+    }, [printerName]);
+
+    useEffect(() => {
+        if (!printerName) return;
+
+        const interval = setInterval(() => {
+            refreshStatus();
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [printerName]);
 
     const start = async (selectedFile) => {

@@ -305,21 +305,33 @@ const PrinterDetail = () => {
                     </div>
                   )}
 
-                  {printer.timeRemaining !== undefined && (
+                  {printer.timeRemaining !== undefined && printer.timeRemaining && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center">
                         <div className="w-8 h-8 flex items-center justify-center rounded-md bg-green-100 text-green-600 mr-3">
                           <BarChart2 className="h-4 w-4" />
                         </div>
-                        <span className="text-sm font-medium text-muted-foreground">Time remaining</span>
+                        <span className="text-sm font-medium text-muted-foreground">Time Elapsed / Remaining</span>
                       </div>
                       <span className="text-sm font-semibold">
-                        {Math.floor(printer.timeRemaining / 60)}h {printer.timeRemaining % 60}m
+                        {/* in seconds, minutes and hours */}
+                        {/* display the hours only if > 0 */}
+                        {Math.floor(printer.timeElapsed / 3600) > 0
+                          ? `${Math.floor(printer.timeElapsed / 3600)}h `
+                          : ''}
+                        {Math.floor((printer.timeElapsed % 3600) / 60)}m{' '}
+                        {Math.floor(printer.timeElapsed % 60)}s /{' '}
+
+                        {Math.floor(printer.timeRemaining / 3600) > 0
+                          ? `${Math.floor(printer.timeRemaining / 3600)}h `
+                          : ''}
+                        {Math.floor((printer.timeRemaining % 3600) / 60)}m{' '}
+                        {Math.floor(printer.timeRemaining % 60)}s
                       </span>
                     </div>
                   )}
 
-                  {printer.progress !== undefined && (
+                  {printer.progress !== undefined && printer.progress > 0 && (
                     <div className="p-3 rounded-lg bg-gray-50 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
@@ -374,7 +386,7 @@ const PrinterDetail = () => {
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('stop')}
                   disabled={printer.status !== 'printing' && printer.status !== 'paused'}
-                  onClick= {() => stop()}
+                  onClick={() => stop()}
                 >
                   <CircleStop className="mr-2 h-4 w-4" />
                   Stop
