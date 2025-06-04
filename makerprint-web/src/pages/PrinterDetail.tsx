@@ -280,7 +280,6 @@ const PrinterDetail = () => {
                         </span>
                       </div>
                     </div>
-                    {/* Temperature progress bar - keeping this for visual indication */}
                     {printer.bedTemp.target > 0 && (
                       <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
                         <div
@@ -293,7 +292,7 @@ const PrinterDetail = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {printer.layerHeight && (
+                  {printer.layerHeight > 0 && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center">
                         <div className="w-8 h-8 flex items-center justify-center rounded-md bg-purple-100 text-purple-600 mr-3">
@@ -305,7 +304,7 @@ const PrinterDetail = () => {
                     </div>
                   )}
 
-                  {printer.timeRemaining !== undefined && printer.timeRemaining && (
+                  {printer.timeRemaining > 0 && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center">
                         <div className="w-8 h-8 flex items-center justify-center rounded-md bg-green-100 text-green-600 mr-3">
