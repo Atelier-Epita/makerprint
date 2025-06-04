@@ -1,6 +1,6 @@
 import os
-import re
 import threading
+import time
 
 from printrun.printcore import printcore
 from printrun import gcoder
@@ -14,6 +14,8 @@ class Printer(printcore):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tempcb = self._tempcb
+        self.startcb = self._startcb
+        self.endcb = self._endcb
 
         # status stuff
         self.extruder_temp = 0 
@@ -23,6 +25,7 @@ class Printer(printcore):
 
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
         self.current_file = None
+        self.start_time = None
 
         self.statuscheck = True
         self.status_thread = threading.Thread(
@@ -46,6 +49,15 @@ class Printer(printcore):
         gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
         gcode = gcoder.LightGCode(gcode)
         return gcode
+    
+    def _startcb(self, resuming = False):
+        if not resuming:
+            self.start_time = time.time()
+
+    def _endcb(self):
+        time_string = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.start_time))
+        logger.info(f"Print finished on {self.name} in {time_string}")
+        self.start_time = None
 
     def _tempcb(self, tempstr):
         temps = utils.parse_temperature_report(tempstr)
@@ -73,9 +85,18 @@ class Printer(printcore):
                 self.bed_temp_target = float(setpoint)
 
     def get_status(self):
-        progress = 0
+        percentage = 0
+        time_remaining = None
+        elapsed_time = None
+        
         if self.mainqueue:
-            progress = int(float(self.queueindex) / len(self.mainqueue) * 100)
+            fraction = self.queueindex / len(self.mainqueue)
+            percentage = round(fraction * 100, 1)
+
+            if self.start_time:
+                elapsed_time = time.time() - self.start_time
+                total_time = elapsed_time / max(fraction, 0.01)
+                time_remaining = (total_time - elapsed_time)
 
         status = 'printing' if self.printing else 'paused' if self.paused else 'idle'
 
@@ -85,7 +106,9 @@ class Printer(printcore):
             name=self.name,
             baud=self.baud,
             paused=self.paused,
-            progress=progress,
+            progress=percentage,
+            timeElapsed=elapsed_time,
+            timeRemaining=time_remaining,
             currentFile=self.current_file,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target

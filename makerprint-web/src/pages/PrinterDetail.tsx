@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, data } from 'react-router-dom';
-import { usePrinterActions } from '@/hooks/usePrinterActions.ts';
 import { usePrinterStatus } from '@/hooks/usePrinterStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,25 +17,16 @@ const PrinterDetail = () => {
   const navigate = useNavigate();
 
   const [command, setCommand] = useState('');
-  const [printer, setPrinter] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
-  const { status, loading, error } = usePrinterStatus(name);
-  const { start, stop, pauseOrResume, connect, disconnect, sendCommand } = usePrinterActions();
+  const { printer, loading, error, actions } = usePrinterStatus(name);
+  const { start, stop, pauseOrResume, connect, disconnect, sendCommand, refreshStatus } = actions;
   const { files, loading: filesLoading, error: filesError, upload, refreshFiles } = useFiles();
 
-  useEffect(() => {
-    if (!name) {
-      navigate('/');
-      return;
-    }
-
-    if (status && !loading && !error) {
-      setPrinter(status);
-    } else {
-      setPrinter(null);
-    }
-  }, [status, loading, error, name]);
+  if (!name) {
+    navigate('/');
+    return;
+  }
 
   if (error) {
     return (
@@ -59,9 +49,7 @@ const PrinterDetail = () => {
   }
 
   // Only disable movement when actively printing
-  const isMovementDisabled = (status: string) => {
-    return status === 'printing' || status === 'disconnected';
-  };
+  const isMovementDisabled = printer.status === 'printing' || printer.status === 'disconnected';
 
   // Get status color for buttons
   const getStatusColor = (status: string) => {
@@ -114,69 +102,8 @@ const PrinterDetail = () => {
     return 'outline';
   };
 
-  const handleConnect = () => {
-    if (printer.status === 'disconnected') {
-      connect(name)
-        .then((resp) => {
-          setPrinter(resp.data);
-        }).catch((error) => {
-          console.error('Error connecting to printer:', error);
-        });
-    }
-
-    else if (printer.status === 'idle') {
-      disconnect(name)
-        .then((resp) => {
-          setPrinter(resp.data);
-        }).catch((error) => {
-          console.error('Error disconnecting from printer:', error);
-        });
-    }
-  };
-
-  const handlePrint = () => {
-    if (printer.status === 'printing') {
-      return;
-    }
-
-    start(name, selectedFile)
-      .then((resp) => {
-        setPrinter(resp.data);
-      }).catch((error) => {
-        console.error('Error starting print:', error);
-      });
-  };
-
-  const handlePause = () => {
-    if (printer.status === 'printing') {
-      pauseOrResume(name, true)
-        .then((resp) => {
-          setPrinter(resp.data);
-        }).catch((error) => {
-          console.error('Error pausing/resuming print:', error);
-        });
-    }
-    else if (printer.status === 'paused') {
-      pauseOrResume(name, false)
-        .then((resp) => {
-          setPrinter(resp.data);
-        }).catch((error) => {
-          console.error('Error resuming print:', error);
-        });
-    }
-  };
-
-  const handleStop = () => {
-    stop(name)
-      .then((resp) => {
-        setPrinter(resp.data);
-      }).catch((error) => {
-        console.error('Error stopping print:', error);
-      });
-  };
-
   const handleMovement = (axis: string, direction: number, scale: number = 10) => {
-    if (printer.status === 'disconnected' || isMovementDisabled(printer.status)) {
+    if (printer.status === 'disconnected' || isMovementDisabled) {
       console.warn('Cannot move printer while disconnected or during print');
       return;
     }
@@ -188,28 +115,14 @@ const PrinterDetail = () => {
 
     const START_GCODE = 'G91'; // Set to relative positioning before movement
     const END_GCODE = 'G90'; // Set to absolute positioning after movement
-    const command = `${axis}${direction > 0 ? '' : '-'}${scale}`;
-    const gcodeCommand = `${START_GCODE}; ${command} ${END_GCODE}`;
-    sendCommand(name, gcodeCommand)
-      .then((resp) => {
-        setPrinter(resp.data);
-      }
-      ).catch((error) => {
-        console.error(`Error moving ${axis} axis:`, error);
-      }
-      );
+    const command = `G0 ${axis}${direction > 0 ? '' : '-'}${scale}`;
+    const commands = `${START_GCODE}; ${command}; ${END_GCODE};`;
+    sendCommand(name, commands);
   };
 
   const handleHome = () => {
     const command = 'G28'; // G-code command to home all axes
-    sendCommand(name, command)
-      .then((resp) => {
-
-        setPrinter(resp.data);
-      })
-      .catch((error) => {
-        console.error('Error homing printer:', error);
-      });
+    sendCommand(name, command);
   };
 
   const handleCommandSubmit = (e: React.FormEvent) => {
@@ -219,17 +132,34 @@ const PrinterDetail = () => {
       console.warn('Command input is empty');
       return;
     }
-    sendCommand(name, command)
-      .then((resp) => {
-        setPrinter(resp.data);
-      })
-      .catch((error) => {
-        console.error('Error sending command:', error);
-      });
-
-    // Clear command input after sending
+    // send command and clear input
+    sendCommand(name, command.trim());
     setCommand('');
   };
+
+  const handleFileSelect = (file: string) => {
+    if (file === selectedFile) {
+      setSelectedFile(null);
+    } else {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.gcode,.gco,.g,.gcode.gz';
+    fileInput.multiple = true;
+    fileInput.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        Array.from(files).forEach((file) => {
+          upload(file);
+        });
+      }
+    };
+    fileInput.click();
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -375,21 +305,33 @@ const PrinterDetail = () => {
                     </div>
                   )}
 
-                  {printer.timeRemaining !== undefined && (
+                  {printer.timeRemaining !== undefined && printer.timeRemaining && (
                     <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center">
                         <div className="w-8 h-8 flex items-center justify-center rounded-md bg-green-100 text-green-600 mr-3">
                           <BarChart2 className="h-4 w-4" />
                         </div>
-                        <span className="text-sm font-medium text-muted-foreground">Time remaining</span>
+                        <span className="text-sm font-medium text-muted-foreground">Time Elapsed / Remaining</span>
                       </div>
                       <span className="text-sm font-semibold">
-                        {Math.floor(printer.timeRemaining / 60)}h {printer.timeRemaining % 60}m
+                        {/* in seconds, minutes and hours */}
+                        {/* display the hours only if > 0 */}
+                        {Math.floor(printer.timeElapsed / 3600) > 0
+                          ? `${Math.floor(printer.timeElapsed / 3600)}h `
+                          : ''}
+                        {Math.floor((printer.timeElapsed % 3600) / 60)}m{' '}
+                        {Math.floor(printer.timeElapsed % 60)}s /{' '}
+
+                        {Math.floor(printer.timeRemaining / 3600) > 0
+                          ? `${Math.floor(printer.timeRemaining / 3600)}h `
+                          : ''}
+                        {Math.floor((printer.timeRemaining % 3600) / 60)}m{' '}
+                        {Math.floor(printer.timeRemaining % 60)}s
                       </span>
                     </div>
                   )}
 
-                  {printer.progress !== undefined && (
+                  {printer.progress !== undefined && printer.progress > 0 && (
                     <div className="p-3 rounded-lg bg-gray-50 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
@@ -426,7 +368,7 @@ const PrinterDetail = () => {
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('start')}
                   disabled={printer.status === 'printing' || printer.status === 'disconnected' || !selectedFile}
-                  onClick={handlePrint}
+                  onClick={() => start(selectedFile)}
                 >
                   <Play className="mr-2 h-4 w-4" />
                   Start
@@ -435,7 +377,7 @@ const PrinterDetail = () => {
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('pause')}
                   disabled={printer.status !== 'printing' && printer.status !== 'paused'}
-                  onClick={handlePause}
+                  onClick={() => pauseOrResume()}
                 >
                   {printer.status === 'printing' ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
                   {printer.status === 'printing' ? 'Pause' : 'Resume'}
@@ -444,7 +386,7 @@ const PrinterDetail = () => {
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('stop')}
                   disabled={printer.status !== 'printing' && printer.status !== 'paused'}
-                  onClick={handleStop}
+                  onClick={() => stop()}
                 >
                   <CircleStop className="mr-2 h-4 w-4" />
                   Stop
@@ -453,7 +395,7 @@ const PrinterDetail = () => {
                   className="flex-1 shadow-md hover:shadow-lg transition-all duration-300"
                   variant={getButtonVariant('connect')}
                   disabled={printer.status === 'printing' || printer.status === 'paused'}
-                  onClick={handleConnect}
+                  onClick={() => printer.status === 'disconnected' ? connect() : disconnect()}
                 >
                   <Plug className="mr-2 h-4 w-4" />
                   {printer.status === 'disconnected' ? 'Connect' : 'Disconnect'}
@@ -476,7 +418,7 @@ const PrinterDetail = () => {
                     size="icon"
                     className="w-16 h-16 aspect-square rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                     onClick={() => handleMovement('Y', 1)}
-                    disabled={isMovementDisabled(printer.status)}
+                    disabled={isMovementDisabled}
                   >
                     <ArrowUp className="h-8 w-8 text-purple-600" />
                   </Button>
@@ -489,7 +431,7 @@ const PrinterDetail = () => {
                     size="icon"
                     className="w-16 h-16 aspect-square rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                     onClick={() => handleMovement('X', -1)}
-                    disabled={isMovementDisabled(printer.status)}
+                    disabled={isMovementDisabled}
                   >
                     <ArrowLeft className="h-8 w-8 text-purple-600" />
                   </Button>
@@ -499,7 +441,7 @@ const PrinterDetail = () => {
                     size="icon"
                     className="w-16 h-16 aspect-square rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0"
                     onClick={handleHome}
-                    disabled={isMovementDisabled(printer.status)}
+                    disabled={isMovementDisabled}
                   >
                     <Home className="h-8 w-8" />
                   </Button>
@@ -509,7 +451,7 @@ const PrinterDetail = () => {
                     size="icon"
                     className="w-16 h-16 aspect-square rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                     onClick={() => handleMovement('X', 1)}
-                    disabled={isMovementDisabled(printer.status)}
+                    disabled={isMovementDisabled}
                   >
                     <ArrowRight className="h-8 w-8 text-purple-600" />
                   </Button>
@@ -522,7 +464,7 @@ const PrinterDetail = () => {
                     size="icon"
                     className="w-16 h-16 aspect-square rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                     onClick={() => handleMovement('Y', -1)}
-                    disabled={isMovementDisabled(printer.status)}
+                    disabled={isMovementDisabled}
                   >
                     <ArrowDown className="h-8 w-8 text-purple-600" />
                   </Button>
@@ -535,7 +477,7 @@ const PrinterDetail = () => {
                   variant="outline"
                   className="h-14 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                   onClick={() => handleMovement('Z', 1)}
-                  disabled={isMovementDisabled(printer.status)}
+                  disabled={isMovementDisabled}
                 >
                   <ArrowUp className="mr-2 h-5 w-5 text-purple-600" />
                   <span className="font-semibold text-gray-700">Z+</span>
@@ -545,7 +487,7 @@ const PrinterDetail = () => {
                   variant="outline"
                   className="h-14 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-gray-50 to-white border border-gray-200"
                   onClick={() => handleMovement('Z', -1)}
-                  disabled={isMovementDisabled(printer.status)}
+                  disabled={isMovementDisabled}
                 >
                   <ArrowDown className="mr-2 h-5 w-5 text-purple-600" />
                   <span className="font-semibold text-gray-700">Z-</span>
@@ -558,7 +500,7 @@ const PrinterDetail = () => {
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
                   placeholder="Enter a command"
-                  disabled={printer.status === 'disconnected' || isMovementDisabled(printer.status)}
+                  disabled={printer.status === 'disconnected' || isMovementDisabled}
                   className="h-12 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 text-base"
                 />
               </form>
@@ -599,13 +541,7 @@ const PrinterDetail = () => {
                         size="sm"
                         className={file === selectedFile ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' : ''}
                         disabled={printer.status === 'printing' && file === selectedFile}
-                        onClick={() => {
-                          if (file === selectedFile) {
-                            setSelectedFile(null);
-                          } else {
-                            setSelectedFile(file);
-                          }
-                        }}
+                        onClick={() => handleFileSelect(file)}
                       >
                         {file === selectedFile ? 'Selected' : 'Select'}
                       </Button>
@@ -628,21 +564,7 @@ const PrinterDetail = () => {
               <Button
                 className="w-full shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600"
                 disabled={printer.status === 'disconnected'}
-                onClick={() => {
-                  const fileInput = document.createElement('input');
-                  fileInput.type = 'file';
-                  fileInput.accept = '.gcode,.gco,.g,.gcode.gz';
-                  fileInput.multiple = true;
-                  fileInput.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    if (files) {
-                      Array.from(files).forEach((file) => {
-                        upload(file);
-                      });
-                    }
-                  };
-                  fileInput.click();
-                }}
+                onClick={handleFileUpload}
               >
                 <File className="mr-2 h-4 w-4" />
                 Upload File

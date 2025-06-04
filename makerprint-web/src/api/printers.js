@@ -22,14 +22,13 @@ export async function stopPrinter(printer_name) {
     return response;
 }
 
-export async function pausePrinter(printer_name, pausing) {
-    let url;
-    if (pausing) {
-        url = `${API_URL}/printers/${printer_name}/pause/`;
-    } else {
-        url = `${API_URL}/printers/${printer_name}/resume/`;
-    }
-    const response = await axios.post(url);
+export async function pausePrinter(printer_name) {
+    const response = await axios.post(`${API_URL}/printers/${printer_name}/pause/`);
+    return response;
+}
+
+export async function resumePrinter(printer_name) {
+    const response = await axios.post(`${API_URL}/printers/${printer_name}/resume/`);
     return response;
 }
 
@@ -43,7 +42,7 @@ export async function disconnectPrinter(printer_name) {
     return response;
 }
 
-export async function sendCommand(printer_name, command) {
+export async function sendCmd(printer_name, command) {
     if (!printer_name || !command) {
         throw new Error("Printer name and command are required");
     }

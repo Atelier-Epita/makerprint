@@ -15,7 +15,7 @@ export function usePrinters() {
                 setPrinters(data);
             } else if (Array.isArray(data.printers)) {
                 setPrinters(data.printers);
-            } else if (typeof data === 'object' && data !== null && Object.keys(data).length > 0) {
+            } else if (typeof data === 'object' && data !== null) {
                 setPrinters(Object.values(data));
             } else {
                 console.error("Format de données inattendu :", data);
