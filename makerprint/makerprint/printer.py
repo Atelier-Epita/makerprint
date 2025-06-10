@@ -28,6 +28,7 @@ class Printer(printcore):
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
         self.current_file = None
         self.start_time = None
+        self.bed_clear = True
 
         self.statuscheck = True
         self.status_thread = threading.Thread(
@@ -54,6 +55,7 @@ class Printer(printcore):
     def _startcb(self, resuming=False):
         if not resuming:
             self.start_time = time.time()
+            self.bed_clear = False
 
     def _endcb(self):
         time_string = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.start_time))
@@ -107,11 +109,11 @@ class Printer(printcore):
             port=self.port,
             name=self.name,
             baud=self.baud,
-            paused=self.paused,
             progress=percentage,
             timeElapsed=elapsed_time,
             timeRemaining=time_remaining,
             currentFile=self.current_file,
+            bedClear=self.bed_clear,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target
             ),
@@ -135,6 +137,16 @@ class Printer(printcore):
         if self.status_thread.is_alive():
             self.status_thread.join(timeout=1)
         return super().disconnect()
+    
+    def clear_bed(self):
+        """Set the bed to clear. This is used to indicate that the bed is clear for a new print."""
+        if not self.online:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Printer {self.name} is not connected",
+            )
+        self.bed_clear = True
+        logger.info(f"Bed cleared for printer {self.name} on {self.port}")
 
     async def connect(self, port=None, baud=None, dtr=None):
         """Connect to the printer with the specified port and baud rate. waits until the printer is online."""
@@ -168,4 +180,5 @@ class Printer(printcore):
             )
 
         logger.debug(f"Connected to printer {self.name} on {self.port} at {self.baud} baud")
+        self.statuscheck = True
         self.status_thread.start()

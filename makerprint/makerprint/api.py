@@ -171,6 +171,16 @@ async def printer_stop(name: str):
     return printer.get_status()
 
 
+@app.post("/printers/{name}/clear_bed/", response_model=models.PrinterStatus)
+async def printer_clear_bed(name: str):
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+
+    printer: Printer = connected_printers[name]
+    printer.clear_bed()
+    return printer.get_status()
+
+
 @app.get("/file/list/", response_model=list[str])
 async def list_files():
     folder = utils.GCODEFOLDER
