@@ -82,10 +82,11 @@ def create_mock_printer(i):
     ]
 
 
-async def auto_detect_baud(port, ser_timeout=0.25, timeout=1) -> int | bool:
+async def auto_detect_baud(port, ser_timeout=1, timeout=5) -> int | bool:
     """Small utility to auto-detect the baud rate for a 3d printer."""
 
     for baud in BAUDRATES:
+        ser = None
         try:
             logger.debug(f"Trying baud rate {baud} for {port}")
             ser = serial.Serial(
@@ -99,21 +100,30 @@ async def auto_detect_baud(port, ser_timeout=0.25, timeout=1) -> int | bool:
             timeout_time = start_time + timeout
 
             ser.write(b"\n")
-            ser.write(b"M105\n")  # temperature report command
-            ser.flush()  # ensure the command is sent
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            ser.flush()
+
+            ser.write(b"M105\n")  # temperature report command, should output something like "T:200.0 /200.0 B:60.0 /60.0"
 
             while asyncio.get_event_loop().time() < timeout_time:
-                line = ser.read_until(size=100)
-                if b"ok" in line and b"T:" in line:
+                line = ser.readline(100)
+                if b"ok" in line or b"T:" in line or b"echo:" in line or b"error:" in line:
                     logger.debug(f"Detected baud rate {baud} for {port}")
                     ser.close() # close the serial port for later use
                     return baud
-
+                elif line:
+                    logger.debug(f"Received line: {line.decode('utf-8', errors='ignore').strip()}")
+            
             ser.close()
+            logger.debug(f"No response from {port} at {baud} baud")
 
-        except (serial.SerialException, ValueError):
-            logger.warning(f"Failed to connect to {port} at {baud} baud")
-            continue
+        except (serial.SerialException, ValueError) as e:
+            logger.warning(f"Failed to connect to {port} at {baud} baud: {e}")
+
+        finally:
+            if ser and ser.is_open:
+                ser.close()
 
     logger.error(f"Failed to auto-detect baud rate for {port}")
     return False
