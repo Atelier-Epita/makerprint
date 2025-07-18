@@ -4,8 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
 from fastapi import UploadFile, Form, File, Body
 
-import asyncio
-
 from . import utils, models
 from .utils import logger
 from .printer import Printer
@@ -17,6 +15,7 @@ app = fastapi.FastAPI(
     description="API for MakerPrint",
     version="0.1.0",
 )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,12 +25,12 @@ app.add_middleware(
 )
 
 
-@app.middleware("http")
-async def log_requests(request: fastapi.Request, call_next):
-    logger.info(f"Request: {request.method} {request.url}")
-    response = await call_next(request)
-    logger.info(f"Response: {response.status_code}, {response}")
-    return response
+# @app.middleware("http")
+# async def log_requests(request: fastapi.Request, call_next):
+#     logger.info(f"Request: {request.method} {request.url}")
+#     response = await call_next(request)
+#     logger.info(f"Response: {response.status_code}, {response}")
+#     return response
 
 
 @app.get("/")
@@ -88,32 +87,12 @@ async def connect_printer(
     if not port:
         raise HTTPException(status_code=404, detail="Printer not found")
 
-    try:
-        timeout = 5
-        start_time = asyncio.get_event_loop().time()
+    printer = Printer(port, baud=baud)
+    if not baud:
+        await printer.connect()
 
-        for baudrate in utils.BAUDRATES:
-            p = Printer(port, baud=baudrate)
-            logger.info(
-                f"Trying to connect to printer {name} on {port} with baudrate {baudrate}"
-            )
-
-            while not p.online:
-                if (asyncio.get_event_loop().time() - start_time) > timeout:
-                    continue
-
-            # successfully connected
-            if p.online:
-                connected_printers[name] = p
-                logger.info(f"Connected to printer {name} on {port}")
-                return p.get_status()
-
-        else:
-            raise ValueError("Failed to connect to printer with any baudrate")
-
-    except ValueError as e:
-        logger.error(f"Failed to connect to printer {name} on {port}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+    connected_printers[name] = printer
+    return printer.get_status()
 
 
 @app.post("/printers/{name}/disconnect/", response_model=models.PrinterStatus)
@@ -189,6 +168,16 @@ async def printer_stop(name: str):
 
     printer: Printer = connected_printers[name]
     printer.cancelprint()
+    return printer.get_status()
+
+
+@app.post("/printers/{name}/clear_bed/", response_model=models.PrinterStatus)
+async def printer_clear_bed(name: str):
+    if name not in connected_printers:
+        raise HTTPException(status_code=400, detail="Printer not connected")
+
+    printer: Printer = connected_printers[name]
+    printer.clear_bed()
     return printer.get_status()
 
 

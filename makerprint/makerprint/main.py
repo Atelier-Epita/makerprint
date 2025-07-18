@@ -27,3 +27,6 @@ def main():
     utils.logger.info("Press Ctrl+C to quit.")
 
     asyncio.run(serve(app, config))
+
+if __name__ == "__main__":
+    main()

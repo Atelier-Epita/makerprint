@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import asyncio
 
 from printrun.printcore import printcore
 from printrun import gcoder
@@ -11,13 +12,14 @@ from .utils import logger
 
 
 class Printer(printcore):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, port, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tempcb = self._tempcb
         self.startcb = self._startcb
         self.endcb = self._endcb
 
         # status stuff
+        self.port = port
         self.extruder_temp = 0 
         self.extruder_temp_target = 0 
         self.bed_temp = 0 
@@ -26,15 +28,15 @@ class Printer(printcore):
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
         self.current_file = None
         self.start_time = None
+        self.bed_clear = True
 
         self.statuscheck = True
         self.status_thread = threading.Thread(
-            target=self.status_thread,
+            target=self._status_thread,
             name=f"PrinterStatusThread-{self.port}",
             args=(),
             daemon=True,
         )
-        self.status_thread.start()
 
     def prepare_gcode(self, filename):
         folder = utils.GCODEFOLDER
@@ -49,15 +51,17 @@ class Printer(printcore):
         gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
         gcode = gcoder.LightGCode(gcode)
         return gcode
-    
-    def _startcb(self, resuming = False):
+
+    def _startcb(self, resuming=False):
         if not resuming:
             self.start_time = time.time()
+            self.bed_clear = False
 
     def _endcb(self):
         time_string = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.start_time))
-        logger.info(f"Print finished on {self.name} in {time_string}")
+        logger.info(f"Print {self.current_file} finished on {self.name} in {time_string}")
         self.start_time = None
+        self.current_file = None
 
     def _tempcb(self, tempstr):
         temps = utils.parse_temperature_report(tempstr)
@@ -105,11 +109,11 @@ class Printer(printcore):
             port=self.port,
             name=self.name,
             baud=self.baud,
-            paused=self.paused,
             progress=percentage,
             timeElapsed=elapsed_time,
             timeRemaining=time_remaining,
             currentFile=self.current_file,
+            bedClear=self.bed_clear,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target
             ),
@@ -118,14 +122,14 @@ class Printer(printcore):
             ),
         )
 
-    def _status_thread(self):
+    def _status_loop(self):
         while self.online:
             self.send_now("M105")
             threading.Event().wait(2)
 
-    def status_thread(self):
+    def _status_thread(self):
         while self.statuscheck:
-            self._status_thread()
+            self._status_loop()
             threading.Event().wait(1)
 
     def disconnect(self):
@@ -133,3 +137,48 @@ class Printer(printcore):
         if self.status_thread.is_alive():
             self.status_thread.join(timeout=1)
         return super().disconnect()
+    
+    def clear_bed(self):
+        """Set the bed to clear. This is used to indicate that the bed is clear for a new print."""
+        if not self.online:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Printer {self.name} is not connected",
+            )
+        self.bed_clear = True
+        logger.info(f"Bed cleared for printer {self.name} on {self.port}")
+
+    async def connect(self, port=None, baud=None, dtr=None):
+        """Connect to the printer with the specified port and baud rate. waits until the printer is online."""
+        if self.online:
+            logger.warning(f"Printer {self.name} is already connected on {self.port}")
+            return
+
+        self.port = port or self.port
+        self.baud = baud or self.baud
+
+        if not self.baud:
+            detected = await utils.auto_detect_baud(port=self.port)
+            if not detected:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to auto-detect baud rate for {self.port}",
+                )
+
+            self.baud = detected
+
+        super().connect(self.port, self.baud, dtr)
+        start = asyncio.get_event_loop().time()
+
+        while not self.online and (asyncio.get_event_loop().time() - start) < 10:
+            await asyncio.sleep(0.1)
+
+        if not self.online:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to connect to printer on {self.port} at {self.baud} baud",
+            )
+
+        logger.debug(f"Connected to printer {self.name} on {self.port} at {self.baud} baud")
+        self.statuscheck = True
+        self.status_thread.start()
