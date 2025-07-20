@@ -12,7 +12,7 @@ from .utils import logger
 
 
 class Printer(printcore):
-    def __init__(self, port, *args, **kwargs):
+    def __init__(self, port, baud=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tempcb = self._tempcb
         self.startcb = self._startcb
@@ -20,6 +20,7 @@ class Printer(printcore):
 
         # status stuff
         self.port = port
+        self.baud = baud
         self.extruder_temp = 0 
         self.extruder_temp_target = 0 
         self.bed_temp = 0 
