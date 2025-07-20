@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
-    fetchPrintQueue,
-    addToQueue,
-    removeFromQueue,
-    reorderQueue,
-    clearQueue
+    fetchSharedQueue,
+    fetchQueueTags,
+    addToSharedQueue,
+    removeFromSharedQueue,
+    reorderSharedQueue,
+    clearSharedQueue
 } from '@/api/files';
 
 interface QueueItem {
@@ -12,32 +13,43 @@ interface QueueItem {
     file_name: string;
     file_path: string;
     added_at: string;
+    tags: string[];
 }
 
-export function usePrintQueue(printerName: string) {
+export function usePrintQueue() {
     const [queue, setQueue] = useState<QueueItem[]>([]);
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
+    const [activeTagFilter, setActiveTagFilter] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const loadQueue = async () => {
-        if (!printerName) return;
-        
+    const loadQueue = async (tagFilter?: string[]) => {
         try {
             setLoading(true);
-            const queueData = await fetchPrintQueue(printerName);
+            const queueData = await fetchSharedQueue(tagFilter);
             setQueue(queueData);
             setError(null);
         } catch (err: any) {
-            setError(err.message || 'Failed to load print queue');
+            setError(err.message || 'Failed to load shared queue');
         } finally {
             setLoading(false);
         }
     };
 
-    const addFileToQueue = async (filePath: string) => {
+    const loadTags = async () => {
         try {
-            await addToQueue(printerName, filePath);
-            await loadQueue();
+            const tags = await fetchQueueTags();
+            setAvailableTags(tags);
+        } catch (err: any) {
+            console.error('Failed to load tags:', err);
+        }
+    };
+
+    const addFileToQueue = async (filePath: string, tags: string[] = []) => {
+        try {
+            await addToSharedQueue(filePath, tags);
+            await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
+            await loadTags(); // Reload tags as new ones might have been added
             setError(null);
         } catch (err: any) {
             setError(err.message || 'Failed to add file to queue');
@@ -47,8 +59,9 @@ export function usePrintQueue(printerName: string) {
 
     const removeFileFromQueue = async (queueItemId: string) => {
         try {
-            await removeFromQueue(printerName, queueItemId);
-            await loadQueue();
+            await removeFromSharedQueue(queueItemId);
+            await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
+            await loadTags(); // Reload tags as some might have been removed
             setError(null);
         } catch (err: any) {
             setError(err.message || 'Failed to remove file from queue');
@@ -77,8 +90,8 @@ export function usePrintQueue(printerName: string) {
             const newIds = [...currentIds];
             [newIds[currentIndex], newIds[newIndex]] = [newIds[newIndex], newIds[currentIndex]];
             
-            await reorderQueue(printerName, newIds);
-            await loadQueue();
+            await reorderSharedQueue(newIds);
+            await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
             setError(null);
         } catch (err: any) {
             setError(err.message || 'Failed to reorder queue');
@@ -86,10 +99,11 @@ export function usePrintQueue(printerName: string) {
         }
     };
 
-    const clearAllQueue = async () => {
+    const clearAllQueue = async (tagFilter?: string[]) => {
         try {
-            await clearQueue(printerName);
-            await loadQueue();
+            await clearSharedQueue(tagFilter);
+            await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
+            await loadTags();
             setError(null);
         } catch (err: any) {
             setError(err.message || 'Failed to clear queue');
@@ -97,51 +111,47 @@ export function usePrintQueue(printerName: string) {
         }
     };
 
+    const applyTagFilter = async (tags: string[]) => {
+        setActiveTagFilter(tags);
+        await loadQueue(tags.length > 0 ? tags : undefined);
+    };
+
+    const clearTagFilter = async () => {
+        setActiveTagFilter([]);
+        await loadQueue();
+    };
+
     const startPrint = async (queueItemId: string) => {
         // This would typically call the printer API to start printing
         // For now, just remove from queue as it's "printing"
         try {
-            // Could call printer start API here
             console.log(`Starting print for queue item: ${queueItemId}`);
+            // Could call printer start API here
         } catch (err: any) {
             setError(err.message || 'Failed to start print');
             throw err;
         }
     };
 
-    const pausePrint = async (queueItemId: string) => {
-        try {
-            console.log(`Pausing print for queue item: ${queueItemId}`);
-        } catch (err: any) {
-            setError(err.message || 'Failed to pause print');
-            throw err;
-        }
-    };
-
-    const cancelPrint = async (queueItemId: string) => {
-        try {
-            console.log(`Cancelling print for queue item: ${queueItemId}`);
-        } catch (err: any) {
-            setError(err.message || 'Failed to cancel print');
-            throw err;
-        }
-    };
-
     useEffect(() => {
         loadQueue();
-    }, [printerName]);
+        loadTags();
+    }, []);
 
     return {
         queue,
+        availableTags,
+        activeTagFilter,
         loading,
         error,
         addToQueue: addFileToQueue,
         removeFromQueue: removeFileFromQueue,
         reorderQueue: reorderQueueItems,
         clearQueue: clearAllQueue,
+        applyTagFilter,
+        clearTagFilter,
         startPrint,
-        pausePrint,
-        cancelPrint,
-        refreshQueue: loadQueue
+        refreshQueue: () => loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined),
+        refreshTags: loadTags
     };
 }

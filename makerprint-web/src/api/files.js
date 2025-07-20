@@ -41,26 +41,32 @@ export const moveFileOrFolder = (filePath, newFolderPath) => {
     return axios.put(`${API_URL}/files/${encodedPath}/move/`, { new_folder_path: newFolderPath });
 };
 
-// queue
+// Shared Queue API
 
-export const fetchPrintQueue = (printerName) => {
-    return axios.get(`${API_URL}/printers/${printerName}/queue/`).then((res) => res.data);
+export const fetchSharedQueue = (tags = null) => {
+    const params = tags ? { tags: tags.join(',') } : {};
+    return axios.get(`${API_URL}/queue/`, { params }).then((res) => res.data);
 };
 
-export const addToQueue = (printerName, filePath) => {
-    return axios.post(`${API_URL}/printers/${printerName}/queue/`, { file_path: filePath });
+export const fetchQueueTags = () => {
+    return axios.get(`${API_URL}/queue/tags/`).then((res) => res.data);
 };
 
-export const removeFromQueue = (printerName, queueItemId) => {
-    return axios.delete(`${API_URL}/printers/${printerName}/queue/${queueItemId}`);
+export const addToSharedQueue = (filePath, tags = []) => {
+    return axios.post(`${API_URL}/queue/`, { file_path: filePath, tags });
 };
 
-export const reorderQueue = (printerName, itemIds) => {
-    return axios.put(`${API_URL}/printers/${printerName}/queue/reorder/`, { item_ids: itemIds });
+export const removeFromSharedQueue = (queueItemId) => {
+    return axios.delete(`${API_URL}/queue/${queueItemId}`);
 };
 
-export const clearQueue = (printerName) => {
-    return axios.delete(`${API_URL}/printers/${printerName}/queue/`);
+export const reorderSharedQueue = (itemIds) => {
+    return axios.put(`${API_URL}/queue/reorder/`, { item_ids: itemIds });
+};
+
+export const clearSharedQueue = (tags = null) => {
+    const params = tags ? { tags: tags.join(',') } : {};
+    return axios.delete(`${API_URL}/queue/`, { params });
 };
 
 // legacy

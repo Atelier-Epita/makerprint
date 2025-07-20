@@ -5,19 +5,17 @@ import { useFileManager } from '../hooks/useFileManager';
 import { usePrintQueue } from '../hooks/usePrintQueue';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
-import { Progress } from '../components/ui/progress';
-import { 
-    ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Home, Play, Pause, CircleStop, 
-    Plug, RefreshCcw, Thermometer, File, BarChart2 
+import {
+    ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Home, Play, Pause, CircleStop,
+    Plug, RefreshCcw, Thermometer, File, BarChart2
 } from 'lucide-react';
 import FileExplorer from '../components/FileExplorer';
 import PrintQueue from '../components/PrintQueue';
 import { useToast } from '../hooks/use-toast';
 
-interface PrinterDetailProps {}
+interface PrinterDetailProps { }
 
 const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     const { name } = useParams<{ name: string }>();
@@ -31,8 +29,8 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     // Hooks
     const { printer, loading, error, actions } = usePrinterStatus(name);
     const { start, stop, pauseOrResume, connect, disconnect, sendCommand, refreshStatus } = actions;
-    const { 
-        fileTree, 
+    const {
+        fileTree,
         loading: filesLoading,
         uploadFiles,
         createFolder,
@@ -42,14 +40,17 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     } = useFileManager();
     const {
         queue,
+        availableTags,
+        activeTagFilter,
         loading: queueLoading,
         addToQueue,
         removeFromQueue,
         reorderQueue,
-        startPrint,
-        pausePrint,
-        cancelPrint
-    } = usePrintQueue(name || '');
+        clearQueue,
+        applyTagFilter,
+        clearTagFilter,
+        startPrint
+    } = usePrintQueue();
 
     // Helper functions from original PrinterDetail
     const isMovementDisabled = printer?.status === 'printing' || printer?.status === 'disconnected';
@@ -100,13 +101,14 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     };
 
     // Handlers
-    const handleFileSelect = (file: FileItem) => {
-        console.log('File selected:', file);
+    const handleFileSelect = (filePath: string) => {
+        console.log('File selected:', filePath);
+        setSelectedFile(filePath);
     };
 
     const handleAddToQueue = (filePath: string) => {
         if (filePath.endsWith('.gcode')) {
-            addToQueue(filePath);
+            addToQueue(filePath, []);
             toast({
                 title: 'Success',
                 description: 'File added to print queue',
@@ -116,7 +118,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
 
     const handleAddSelectedToQueue = () => {
         if (selectedFile && selectedFile.endsWith('.gcode')) {
-            addToQueue(selectedFile);
+            addToQueue(selectedFile, []); // TODO: probably add tags here ?
             setSelectedFile(null);
             toast({
                 title: 'Success',
@@ -585,13 +587,15 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
 
                             <TabsContent value="queue" className="space-y-4">
                                 <PrintQueue
-                                    printerId={name || ''}
                                     queue={queue}
+                                    availableTags={availableTags}
+                                    activeTagFilter={activeTagFilter}
                                     onStartPrint={startPrint}
-                                    onPausePrint={pausePrint}
-                                    onCancelPrint={cancelPrint}
                                     onRemoveFromQueue={removeFromQueue}
                                     onReorderQueue={reorderQueue}
+                                    onClearQueue={clearQueue}
+                                    onApplyTagFilter={applyTagFilter}
+                                    onClearTagFilter={clearTagFilter}
                                     loading={queueLoading}
                                 />
                             </TabsContent>

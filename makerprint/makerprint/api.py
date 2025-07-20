@@ -1,7 +1,7 @@
 import os
 import fastapi
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import HTTPException, File as FastAPIFile, UploadFile, Form, Body
+from fastapi import HTTPException, File as FastAPIFile, UploadFile, Form, Body, Query
 from typing import List, Optional
 
 from . import utils, models
@@ -239,48 +239,108 @@ async def move_file_or_folder(file_path: str, new_folder_path: str = Body(..., e
 
 # queue endpoints
 
-@app.get("/printers/{printer_name}/queue/", response_model=List[models.QueueItem])
-async def get_printer_queue(printer_name: str):
-    """Get the print queue for a specific printer"""
-    return queue_manager.get_queue(printer_name)
+@app.get("/queue/", response_model=List[models.QueueItem])
+async def get_shared_queue(tags: str = Query(None)):
+    """Get the shared print queue, optionally filtered by tags"""
+    tag_filter = tags.split(',') if tags else None
+    return queue_manager.get_queue(tag_filter)
 
+@app.get("/queue/tags/", response_model=List[str])
+async def get_all_queue_tags():
+    """Get all available tags in the queue"""
+    return queue_manager.get_all_tags()
 
-@app.post("/printers/{printer_name}/queue/")
-async def add_to_queue(
-    printer_name: str, 
-    file_path: str = Body(..., embed=True)
+@app.post("/queue/")
+async def add_to_shared_queue(
+    file_path: str = Body(..., embed=True),
+    tags: List[str] = Body(default=[], embed=True)
 ):
-    """Add a file to the printer's queue"""
+    """Add a file to the shared queue"""
     if not file_manager.file_exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     
     file_name = os.path.basename(file_path)
-    queue_item_id = queue_manager.add_to_queue(printer_name, file_path, file_name)
+    queue_item_id = queue_manager.add_to_queue(file_path, file_name, tags)
     
     return {
         "success": True,
         "queue_item_id": queue_item_id
     }
 
-
-@app.delete("/printers/{printer_name}/queue/{queue_item_id}")
-async def remove_from_queue(printer_name: str, queue_item_id: str):
-    """Remove an item from the printer's queue"""
-    success = queue_manager.remove_from_queue(printer_name, queue_item_id)
+@app.delete("/queue/{queue_item_id}")
+async def remove_from_shared_queue(queue_item_id: str):
+    """Remove an item from the shared queue"""
+    success = queue_manager.remove_from_queue(queue_item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Queue item not found")
     return {"success": True}
 
+@app.put("/queue/reorder/")
+async def reorder_shared_queue(
+    item_ids: List[str] = Body(..., embed=True)
+):
+    """Reorder items in the shared queue"""
+    success = queue_manager.reorder_queue(item_ids)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to reorder queue")
+    return {"success": True}
+
+@app.delete("/queue/")
+async def clear_shared_queue(tags: str = Query(None)):
+    """Clear the shared queue, optionally filtered by tags"""
+    tag_filter = tags.split(',') if tags else None
+    queue_manager.clear_queue(tag_filter)
+    return {"success": True}
+
+# Legacy per-printer queue endpoints (for backward compatibility)
+@app.get("/printers/{printer_name}/queue/", response_model=List[models.QueueItem])
+async def get_printer_queue(printer_name: str, tags: str = Query(None)):
+    """Get the shared queue (legacy endpoint for backward compatibility)"""
+    tag_filter = tags.split(',') if tags else None
+    return queue_manager.get_queue(tag_filter)
+
+@app.post("/printers/{printer_name}/queue/")
+async def add_to_queue(
+    printer_name: str, 
+    file_path: str = Body(..., embed=True),
+    tags: List[str] = Body(default=[], embed=True)
+):
+    """Add a file to the shared queue (legacy endpoint)"""
+    if not file_manager.file_exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    file_name = os.path.basename(file_path)
+    queue_item_id = queue_manager.add_to_queue(file_path, file_name, tags)
+    
+    return {
+        "success": True,
+        "queue_item_id": queue_item_id
+    }
+
+@app.delete("/printers/{printer_name}/queue/{queue_item_id}")
+async def remove_from_queue(printer_name: str, queue_item_id: str):
+    """Remove an item from the shared queue (legacy endpoint)"""
+    success = queue_manager.remove_from_queue(queue_item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    return {"success": True}
 
 @app.put("/printers/{printer_name}/queue/reorder/")
 async def reorder_queue(
     printer_name: str,
     item_ids: List[str] = Body(..., embed=True)
 ):
-    """Reorder items in the printer's queue"""
-    success = queue_manager.reorder_queue(printer_name, item_ids)
+    """Reorder items in the shared queue (legacy endpoint)"""
+    success = queue_manager.reorder_queue(item_ids)
     if not success:
         raise HTTPException(status_code=400, detail="Failed to reorder queue")
+    return {"success": True}
+
+@app.delete("/printers/{printer_name}/queue/")
+async def clear_queue(printer_name: str, tags: str = Query(None)):
+    """Clear the shared queue (legacy endpoint)"""
+    tag_filter = tags.split(',') if tags else None
+    queue_manager.clear_queue(tag_filter)
     return {"success": True}
 
 

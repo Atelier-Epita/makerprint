@@ -181,76 +181,102 @@ class FileManager:
 
 
 class PrintQueueManager:
-    """Manages print queues for printers"""
+    """Manages a shared print queue for all printers"""
     
     def __init__(self):
-        self.queues: Dict[str, List[models.QueueItem]] = {}
+        self.queue: List[models.QueueItem] = []  # Single shared queue for all printers
     
-    def add_to_queue(self, printer_name: str, file_path: str, file_name: str) -> str:
-        """Add a file to a printer's queue"""
-        if printer_name not in self.queues:
-            self.queues[printer_name] = []
-        
+    def add_to_queue(self, file_path: str, file_name: str, tags: List[str] = None) -> str:
+        """Add a file to the shared queue"""
+        if tags is None:
+            tags = []
+            
         queue_item = models.QueueItem(
             id=str(uuid.uuid4()),
             file_path=file_path,
             file_name=file_name,
-            added_at=datetime.now().isoformat()
+            added_at=datetime.now().isoformat(),
+            tags=tags
         )
         
-        self.queues[printer_name].append(queue_item)
-        logger.info(f"Added {file_name} to {printer_name} queue")
+        self.queue.append(queue_item)
+        logger.info(f"Added {file_name} to shared queue with tags: {tags}")
         return queue_item.id
     
-    def remove_from_queue(self, printer_name: str, queue_item_id: str) -> bool:
-        """Remove an item from a printer's queue"""
-        if printer_name not in self.queues:
-            return False
-        
-        original_length = len(self.queues[printer_name])
-        self.queues[printer_name] = [
-            item for item in self.queues[printer_name] 
+    def remove_from_queue(self, queue_item_id: str) -> bool:
+        """Remove an item from the queue"""
+        original_length = len(self.queue)
+        self.queue = [
+            item for item in self.queue 
             if item.id != queue_item_id
         ]
         
-        success = len(self.queues[printer_name]) < original_length
+        success = len(self.queue) < original_length
         if success:
-            logger.info(f"Removed queue item {queue_item_id} from {printer_name}")
+            logger.info(f"Removed queue item {queue_item_id} from shared queue")
         return success
     
-    def get_queue(self, printer_name: str) -> List[models.QueueItem]:
-        """Get the queue for a specific printer"""
-        return self.queues.get(printer_name, [])
+    def get_queue(self, tag_filter: List[str] = None) -> List[models.QueueItem]:
+        """Get the queue, optionally filtered by tags"""
+        if not tag_filter:
+            return self.queue.copy()
+        
+        # Filter by tags - item must have at least one of the specified tags
+        filtered_queue = []
+        for item in self.queue:
+            if any(tag in item.tags for tag in tag_filter):
+                filtered_queue.append(item)
+        
+        return filtered_queue
     
-    def get_next_file(self, printer_name: str) -> Optional[models.QueueItem]:
-        """Get the next file in the queue for a printer"""
-        queue = self.get_queue(printer_name)
+    def get_next_file(self, tag_filter: List[str] = None) -> Optional[models.QueueItem]:
+        """Get the next file in the queue, optionally filtered by tags"""
+        queue = self.get_queue(tag_filter)
         return queue[0] if queue else None
     
-    def clear_queue(self, printer_name: str) -> bool:
-        """Clear all items from a printer's queue"""
-        if printer_name in self.queues:
-            self.queues[printer_name] = []
-            logger.info(f"Cleared queue for {printer_name}")
+    def clear_queue(self, tag_filter: List[str] = None) -> bool:
+        """Clear all items from the queue, optionally filtered by tags"""
+        if not tag_filter:
+            # Clear entire queue
+            self.queue = []
+            logger.info("Cleared entire shared queue")
             return True
-        return False
+        else:
+            # Clear only items matching tags
+            original_length = len(self.queue)
+            self.queue = [
+                item for item in self.queue
+                if not any(tag in item.tags for tag in tag_filter)
+            ]
+            removed_count = original_length - len(self.queue)
+            logger.info(f"Cleared {removed_count} items with tags {tag_filter} from shared queue")
+            return removed_count > 0
     
-    def reorder_queue(self, printer_name: str, item_ids: List[str]) -> bool:
-        """Reorder items in a printer's queue"""
-        if printer_name not in self.queues:
-            return False
-        
-        current_queue = self.queues[printer_name]
-        id_to_item = {item.id: item for item in current_queue}
+    def reorder_queue(self, item_ids: List[str]) -> bool:
+        """Reorder items in the queue"""
+        id_to_item = {item.id: item for item in self.queue}
         
         # Verify all IDs exist
         if not all(item_id in id_to_item for item_id in item_ids):
             return False
         
-        # Reorder
-        self.queues[printer_name] = [id_to_item[item_id] for item_id in item_ids]
-        logger.info(f"Reordered queue for {printer_name}")
+        # Keep items not in reorder list at the end
+        items_not_in_reorder = [item for item in self.queue if item.id not in item_ids]
+        
+        # Reorder specified items
+        reordered_items = [id_to_item[item_id] for item_id in item_ids]
+        
+        # Combine reordered items with remaining items
+        self.queue = reordered_items + items_not_in_reorder
+        logger.info("Reordered shared queue")
         return True
+    
+    def get_all_tags(self) -> List[str]:
+        """Get all unique tags used in the queue"""
+        all_tags = set()
+        for item in self.queue:
+            all_tags.update(item.tags)
+        return sorted(list(all_tags))
 
 
 # Global instances
