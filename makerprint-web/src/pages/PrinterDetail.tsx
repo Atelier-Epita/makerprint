@@ -37,7 +37,8 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         uploadFiles,
         createFolder,
         deleteItem,
-        renameItem
+        renameItem,
+        moveItem
     } = useFileManager();
     const {
         queue,
@@ -99,12 +100,22 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     };
 
     // Handlers
-    const handleFileSelect = (filePath: string) => {
-        setSelectedFile(filePath);
+    const handleFileSelect = (file: FileItem) => {
+        console.log('File selected:', file);
     };
 
-    const handleAddToQueue = () => {
-        if (selectedFile) {
+    const handleAddToQueue = (filePath: string) => {
+        if (filePath.endsWith('.gcode')) {
+            addToQueue(filePath);
+            toast({
+                title: 'Success',
+                description: 'File added to print queue',
+            });
+        }
+    };
+
+    const handleAddSelectedToQueue = () => {
+        if (selectedFile && selectedFile.endsWith('.gcode')) {
             addToQueue(selectedFile);
             setSelectedFile(null);
             toast({
@@ -537,7 +548,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                                     <Button variant="outline" onClick={() => setSelectedFile(null)}>
                                         Cancel
                                     </Button>
-                                    <Button onClick={handleAddToQueue}>
+                                    <Button onClick={handleAddSelectedToQueue}>
                                         Add to Queue
                                     </Button>
                                 </div>
@@ -566,6 +577,8 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                                     onCreateFolder={createFolder}
                                     onDelete={deleteItem}
                                     onRename={renameItem}
+                                    onMove={moveItem}
+                                    onAddToQueue={handleAddToQueue}
                                     loading={filesLoading}
                                 />
                             </TabsContent>

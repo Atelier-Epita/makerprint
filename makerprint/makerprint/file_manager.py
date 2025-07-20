@@ -122,6 +122,38 @@ class FileManager:
         except Exception as e:
             logger.error(f"Failed to rename {old_path} to {new_name}: {e}")
             return False
+
+    def move_item(self, item_path: str, new_folder_path: str) -> bool:
+        """Move a file or folder to a new location"""
+        try:
+            source_path = self.base_path / item_path
+            if not source_path.exists():
+                return False
+            
+            # Handle empty folder path (root)
+            if new_folder_path.strip() == "":
+                target_folder = self.base_path
+            else:
+                target_folder = self.base_path / new_folder_path
+            
+            # Create target folder if it doesn't exist
+            target_folder.mkdir(parents=True, exist_ok=True)
+            
+            # Build the full target path
+            target_path = target_folder / source_path.name
+            
+            # Check if target already exists
+            if target_path.exists():
+                logger.error(f"Target path already exists: {target_path}")
+                return False
+            
+            # Move the item
+            source_path.rename(target_path)
+            logger.info(f"Moved {item_path} to {new_folder_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to move {item_path} to {new_folder_path}: {e}")
+            return False
     
     def save_uploaded_file(self, content: bytes, filename: str, folder_path: str = "") -> bool:
         """Save an uploaded file to the specified folder"""

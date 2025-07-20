@@ -228,7 +228,16 @@ async def rename_file_or_folder(file_path: str, new_name: str = Body(..., embed=
     return {"success": True}
 
 
-# ========== PRINT QUEUE ENDPOINTS ==========
+@app.put("/files/{file_path:path}/move/")
+async def move_file_or_folder(file_path: str, new_folder_path: str = Body(..., embed=True)):
+    """Move a file or folder to a new location"""
+    success = file_manager.move_item(file_path, new_folder_path)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to move file or folder")
+    return {"success": True}
+
+
+# queue endpoints
 
 @app.get("/printers/{printer_name}/queue/", response_model=List[models.QueueItem])
 async def get_printer_queue(printer_name: str):

@@ -8,7 +8,9 @@ import {
     Upload,
     Trash2,
     Edit3,
-    MoreVertical
+    MoreVertical,
+    Plus,
+    Move
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +46,8 @@ interface FileExplorerProps {
     onCreateFolder: (folderPath: string) => Promise<void>;
     onDelete: (filePath: string) => Promise<void>;
     onRename: (filePath: string, newName: string) => Promise<void>;
+    onMove?: (filePath: string, newFolderPath: string) => Promise<void>;
+    onAddToQueue?: (filePath: string) => void;
     loading?: boolean;
 }
 
@@ -54,6 +58,9 @@ interface FileNodeComponentProps {
     onFileSelect?: (filePath: string) => void;
     onDelete: (filePath: string) => Promise<void>;
     onRename: (filePath: string, newName: string) => Promise<void>;
+    onMove?: (filePath: string, newFolderPath: string) => Promise<void>;
+    onAddToQueue?: (filePath: string) => void;
+    allFolders: string[];
 }
 
 const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
@@ -62,11 +69,16 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
     parentPath,
     onFileSelect,
     onDelete,
-    onRename
+    onRename,
+    onMove,
+    onAddToQueue,
+    allFolders
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(node.name);
+    const [showMoveDialog, setShowMoveDialog] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState('');
 
     const handleExpand = () => {
         if (node.type === 'folder') {
@@ -94,6 +106,24 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
             console.error('Failed to rename:', error);
             setNewName(node.name);
             setIsRenaming(false);
+        }
+    };
+
+    const handleMove = async () => {
+        if (!onMove) return;
+        
+        try {
+            await onMove(node.path, selectedFolder);
+            setShowMoveDialog(false);
+            setSelectedFolder('');
+        } catch (error) {
+            console.error('Failed to move:', error);
+        }
+    };
+
+    const handleAddToQueue = () => {
+        if (node.type === 'file' && node.name.endsWith('.gcode') && onAddToQueue) {
+            onAddToQueue(node.path);
         }
     };
 
@@ -174,6 +204,21 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                             <Edit3 className="h-4 w-4 mr-2" />
                             Rename
                         </DropdownMenuItem>
+                        
+                        {onMove && (
+                            <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
+                                <Move className="h-4 w-4 mr-2" />
+                                Move
+                            </DropdownMenuItem>
+                        )}
+                        
+                        {node.type === 'file' && node.name.endsWith('.gcode') && onAddToQueue && (
+                            <DropdownMenuItem onClick={handleAddToQueue}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add to Queue
+                            </DropdownMenuItem>
+                        )}
+                        
                         <DropdownMenuItem 
                             onClick={handleDelete}
                             className="text-red-600"
@@ -183,6 +228,40 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Move Dialog */}
+                <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Move {node.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium">Select destination folder:</label>
+                                <select
+                                    value={selectedFolder}
+                                    onChange={(e) => setSelectedFolder(e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-md"
+                                >
+                                    <option value="">Root folder</option>
+                                    {allFolders.map((folder) => (
+                                        <option key={folder} value={folder}>
+                                            {folder}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleMove}>
+                                    Move
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {node.type === 'folder' && isExpanded && node.children && (
@@ -196,6 +275,9 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                             onFileSelect={onFileSelect}
                             onDelete={onDelete}
                             onRename={onRename}
+                            onMove={onMove}
+                            onAddToQueue={onAddToQueue}
+                            allFolders={allFolders}
                         />
                     ))}
                 </div>
@@ -211,12 +293,40 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     onCreateFolder,
     onDelete,
     onRename,
+    onMove,
+    onAddToQueue,
     loading = false
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+    const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const [selectedUploadFolder, setSelectedUploadFolder] = useState('');
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Extract all folder paths for folder selection
+    const getAllFolders = (node: FileNode | null, currentPath = ''): string[] => {
+        if (!node) return [];
+        
+        const folders: string[] = [];
+        if (node.type === 'folder' && currentPath) {
+            folders.push(currentPath);
+        }
+        
+        if (node.children) {
+            node.children.forEach(child => {
+                if (child.type === 'folder') {
+                    const childPath = currentPath ? `${currentPath}/${child.name}` : child.name;
+                    folders.push(...getAllFolders(child, childPath));
+                }
+            });
+        }
+        
+        return folders;
+    };
+
+    const allFolders = getAllFolders(fileTree);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -236,32 +346,41 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         const gcodeFiles = files.filter(file => file.name.endsWith('.gcode'));
 
         if (gcodeFiles.length === 0) {
-            alert('Only .gcode files are allowed');
+            alert('Please drop .gcode files only');
             return;
         }
 
-        try {
-            await onUpload(gcodeFiles, '');
-            console.log(`Uploaded ${gcodeFiles.length} file(s)`);
-        } catch (error) {
-            console.error('Failed to upload files:', error);
+        setPendingFiles(gcodeFiles);
+        setShowUploadDialog(true);
+    };
+
+    const handleFileSelect = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            const gcodeFiles = Array.from(files).filter(file => file.name.endsWith('.gcode'));
+            if (gcodeFiles.length === 0) {
+                alert('Please select .gcode files only');
+                return;
+            }
+            setPendingFiles(gcodeFiles);
+            setShowUploadDialog(true);
         }
     };
 
-    const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
+    const handleUploadConfirm = async () => {
+        if (pendingFiles.length === 0) return;
+        
         try {
-            await onUpload(files, '');
-            console.log(`Uploaded ${files.length} file(s)`);
+            await onUpload(pendingFiles, selectedUploadFolder);
+            setShowUploadDialog(false);
+            setPendingFiles([]);
+            setSelectedUploadFolder('');
         } catch (error) {
-            console.error('Failed to upload files:', error);
-        }
-
-        // Reset file input
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+            console.error('Upload failed:', error);
         }
     };
 
@@ -352,6 +471,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         onFileSelect={onFileSelect}
                         onDelete={onDelete}
                         onRename={onRename}
+                        onMove={onMove}
+                        onAddToQueue={onAddToQueue}
+                        allFolders={allFolders}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -361,6 +483,50 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     </div>
                 )}
             </CardContent>
+
+            {/* upload Dialog */}
+            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Choose Upload Location</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm text-gray-600 mb-2">
+                                Uploading {pendingFiles.length} file(s)
+                            </p>
+                            <div className="max-h-20 overflow-y-auto text-xs text-gray-500">
+                                {pendingFiles.map((file, index) => (
+                                    <div key={index}>{file.name}</div>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Select destination folder:</label>
+                            <select
+                                value={selectedUploadFolder}
+                                onChange={(e) => setSelectedUploadFolder(e.target.value)}
+                                className="w-full mt-1 p-2 border rounded-md"
+                            >
+                                <option value="">Root folder</option>
+                                {allFolders.map((folder) => (
+                                    <option key={folder} value={folder}>
+                                        {folder}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleUploadConfirm}>
+                                Upload
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 };

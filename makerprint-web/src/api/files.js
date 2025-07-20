@@ -27,14 +27,21 @@ export const createFolder = (folderPath) => {
 };
 
 export const deleteFileOrFolder = (filePath) => {
-    return axios.delete(`${API_URL}/files/${filePath}`);
+    const encodedPath = encodeURIComponent(filePath);
+    return axios.delete(`${API_URL}/files/${encodedPath}`);
 };
 
 export const renameFileOrFolder = (filePath, newName) => {
-    return axios.put(`${API_URL}/files/${filePath}/rename/`, { new_name: newName });
+    const encodedPath = encodeURIComponent(filePath);
+    return axios.put(`${API_URL}/files/${encodedPath}/rename/`, { new_name: newName });
 };
 
-// ========== PRINT QUEUE ==========
+export const moveFileOrFolder = (filePath, newFolderPath) => {
+    const encodedPath = encodeURIComponent(filePath);
+    return axios.put(`${API_URL}/files/${encodedPath}/move/`, { new_folder_path: newFolderPath });
+};
+
+// queue
 
 export const fetchPrintQueue = (printerName) => {
     return axios.get(`${API_URL}/printers/${printerName}/queue/`).then((res) => res.data);

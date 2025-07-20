@@ -5,7 +5,8 @@ import {
     uploadFiles,
     createFolder,
     deleteFileOrFolder,
-    renameFileOrFolder
+    renameFileOrFolder,
+    moveFileOrFolder
 } from '@/api/files';
 
 interface FileNode {
@@ -106,6 +107,18 @@ export function useFileManager() {
         }
     };
 
+    const moveItem = async (filePath: string, newFolderPath: string) => {
+        try {
+            await moveFileOrFolder(filePath, newFolderPath);
+            await loadFileTree();
+            await loadFilesFlat();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to move item');
+            throw err;
+        }
+    };
+
     const refresh = async () => {
         await Promise.all([loadFileTree(), loadFilesFlat()]);
     };
@@ -123,6 +136,7 @@ export function useFileManager() {
         createFolder: createNewFolder,
         deleteItem,
         renameItem,
+        moveItem,
         refreshFiles: refresh
     };
 }
