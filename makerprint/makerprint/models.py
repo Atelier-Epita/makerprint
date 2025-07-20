@@ -28,4 +28,34 @@ class PrinterStatus(pydantic.BaseModel):
 
 class File(pydantic.BaseModel):
     name: str
-    tags: list[str] = [] # printer type, filament type, ? order# ? 
+    path: str  # Full path from root
+    type: str = "file"  # "file" or "folder" 
+    size: Optional[int] = None  # File size in bytes (None for folders)
+    modified: Optional[str] = None  # ISO datetime string
+    tags: list[str] = []  # printer type, filament type, order#, etc.
+    
+class FileNode(pydantic.BaseModel):
+    """Represents a file/folder in the hierarchical structure"""
+    name: str
+    path: str
+    type: str = "file"  # "file" or "folder"
+    size: Optional[int] = None
+    modified: Optional[str] = None
+    children: Optional[list['FileNode']] = None  # Only for folders
+    tags: list[str] = []
+
+class PrintQueue(pydantic.BaseModel):
+    """Represents a print queue for a printer"""
+    printer_name: str
+    queue: list[str] = []  # List of file paths
+    current_index: int = 0
+
+class QueueItem(pydantic.BaseModel):
+    """Represents an item in the print queue"""
+    id: str  # Unique identifier for this queue item
+    file_path: str
+    file_name: str
+    added_at: str  # ISO datetime string
+
+# Update forward references
+FileNode.model_rebuild() 
