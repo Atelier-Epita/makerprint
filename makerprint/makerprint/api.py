@@ -75,7 +75,6 @@ async def disconnect_printer(name: str):
     if not response or not response.success:
         logger.warning(f"Failed to disconnect printer {name}: {response.error if response else 'No response'}")
     
-    # Return current status after disconnect attempt
     status_dict = printer_manager.get_printer_status(name)
     return models.PrinterStatus(**status_dict)
 

@@ -180,8 +180,6 @@ class PrinterManager:
             self.logger.error(f"Failed to send command to {printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
-    # Public API methods
-    
     def list_available_printers(self) -> list[str]:
         """List all available printers"""
         return list(self._get_available_printers().keys())

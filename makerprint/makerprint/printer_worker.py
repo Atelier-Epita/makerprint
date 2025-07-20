@@ -301,9 +301,9 @@ class PrinterWorkerProcess:
 
 
 def start_printer_worker(printer_name: str, printer_port: str, 
-                        command_queue: multiprocessing.Queue,
-                        response_queue: multiprocessing.Queue, 
-                        status_queue: multiprocessing.Queue):
+                         command_queue: multiprocessing.Queue,
+                         response_queue: multiprocessing.Queue, 
+                         status_queue: multiprocessing.Queue):
     """Entry point for starting a printer worker process"""
     worker = PrinterWorkerProcess(printer_name, printer_port, command_queue, response_queue, status_queue)
     worker.run()
