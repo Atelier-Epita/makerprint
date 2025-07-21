@@ -243,20 +243,20 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                 size="sm"
                                                 disabled={index === 0}
                                                 onClick={() => handleReorderQueue(item.id, 'up')}
-                                                className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                                className="h-8 w-8 p-0 sm:h-8 sm:w-8"
                                                 title="Move up"
                                             >
-                                                <ArrowUp className="h-3 w-3" />
+                                                <ArrowUp className="h-4 w-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 disabled={index === queue.length - 1}
                                                 onClick={() => handleReorderQueue(item.id, 'down')}
-                                                className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                                className="h-8 w-8 p-0 sm:h-8 sm:w-8"
                                                 title="Move down"
                                             >
-                                                <ArrowDown className="h-3 w-3" />
+                                                <ArrowDown className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     )}
@@ -268,11 +268,11 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => handleStartPrint(item.id)}
-                                                className="h-6 px-1.5 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm"
                                                 title="Start print"
                                             >
-                                                <Play className="h-3 w-3 sm:mr-1" />
-                                                <span className="hidden sm:inline">Start</span>
+                                                <Play className="h-4 w-4 mr-1" />
+                                                Start
                                             </Button>
                                         )}
 
@@ -281,10 +281,10 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleRemoveFromQueue(item.id)}
-                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
+                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
                                             title="Remove from queue"
                                         >
-                                            <X className="h-3 w-3" />
+                                            <X className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>

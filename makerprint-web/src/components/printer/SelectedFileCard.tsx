@@ -16,16 +16,23 @@ const SelectedFileCard: React.FC<SelectedFileCardProps> = ({
     return (
         <Card className="mt-6 printer-card group border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex-1">
                         <div className="text-sm text-gray-500">Selected File</div>
-                        <div className="font-medium">{selectedFile.split('/').pop()}</div>
+                        <div className="font-medium break-words">{selectedFile.split('/').pop()}</div>
                     </div>
-                    <div className="space-x-2">
-                        <Button variant="outline" onClick={onCancel}>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
+                        <Button 
+                            variant="outline" 
+                            onClick={onCancel}
+                            className="h-10 text-sm"
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={onAddToQueue}>
+                        <Button 
+                            onClick={onAddToQueue}
+                            className="h-10 text-sm"
+                        >
                             Add to Queue
                         </Button>
                     </div>
