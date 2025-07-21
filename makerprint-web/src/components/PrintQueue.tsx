@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     X,
     Play,
@@ -49,8 +49,6 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
     onClearTagFilter,
     loading = false
 }) => {
-    const [selectedTags, setSelectedTags] = useState<string[]>(activeTagFilter);
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString();
     };
@@ -83,29 +81,18 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
         }
     };
 
-    const handleApplyTagFilter = async () => {
-        await onApplyTagFilter(selectedTags);
-    };
-
     const handleClearTagFilter = async () => {
-        setSelectedTags([]);
         await onClearTagFilter();
     };
 
-    const handleTagSelect = (tag: string) => {
-        if (selectedTags.includes(tag)) {
-            setSelectedTags(selectedTags.filter(t => t !== tag));
+    const handleTagSelect = async (tag: string) => {
+        let newSelectedTags: string[];
+        if (activeTagFilter.includes(tag)) {
+            newSelectedTags = activeTagFilter.filter(t => t !== tag);
         } else {
-            setSelectedTags([...selectedTags, tag]);
+            newSelectedTags = [...activeTagFilter, tag];
         }
-    };
-
-    const handleClearSelected = async () => {
-        if (onClearQueue && activeTagFilter.length > 0) {
-            await onClearQueue(activeTagFilter);
-        } else if (onClearQueue) {
-            await onClearQueue();
-        }
+        await onApplyTagFilter(newSelectedTags);
     };
 
     if (loading) {
@@ -149,7 +136,7 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                         {availableTags.map((tag) => (
                             <Badge 
                                 key={tag} 
-                                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                                variant={activeTagFilter.includes(tag) ? "default" : "outline"}
                                 className="cursor-pointer"
                                 onClick={() => handleTagSelect(tag)}
                             >
@@ -159,15 +146,8 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                         ))}
                     </div>
                     
-                    <div className="flex gap-2">
-                        <Button 
-                            size="sm" 
-                            onClick={handleApplyTagFilter}
-                            disabled={selectedTags.length === 0}
-                        >
-                            Apply Filter
-                        </Button>
-                        {activeTagFilter.length > 0 && (
+                    {activeTagFilter.length > 0 && (
+                        <div className="flex gap-2">
                             <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -175,17 +155,8 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                             >
                                 Clear Filter
                             </Button>
-                        )}
-                        {queue.length > 0 && (
-                            <Button 
-                                size="sm" 
-                                variant="destructive" 
-                                onClick={handleClearSelected}
-                            >
-                                Clear {activeTagFilter.length > 0 ? 'Filtered' : 'All'}
-                            </Button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </CardHeader>
             <CardContent>
@@ -204,7 +175,7 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                         {queue.map((item, index) => (
                             <div
                                 key={item.id}
-                                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:bg-gray-50"
+                                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:bg-gray-50 transition-all duration-300"
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-2 mb-1">
