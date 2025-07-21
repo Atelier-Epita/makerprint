@@ -181,13 +181,13 @@ class FileManager:
 
 
 class PrintQueueManager:
-    """Manages a shared print queue for all printers"""
+    """Manages a print queue for all printers"""
     
     def __init__(self):
-        self.queue: List[models.QueueItem] = []  # Single shared queue for all printers
+        self.queue: List[models.QueueItem] = []  # Single queue for all printers
     
     def add_to_queue(self, file_path: str, file_name: str, tags: List[str] = None) -> str:
-        """Add a file to the shared queue"""
+        """Add a file to the queue"""
         if tags is None:
             tags = []
             
@@ -200,7 +200,7 @@ class PrintQueueManager:
         )
         
         self.queue.append(queue_item)
-        logger.info(f"Added {file_name} to shared queue with tags: {tags}")
+        logger.info(f"Added {file_name} to queue with tags: {tags}")
         return queue_item.id
     
     def remove_from_queue(self, queue_item_id: str) -> bool:
@@ -213,7 +213,7 @@ class PrintQueueManager:
         
         success = len(self.queue) < original_length
         if success:
-            logger.info(f"Removed queue item {queue_item_id} from shared queue")
+            logger.info(f"Removed queue item {queue_item_id} from queue")
         return success
     
     def get_queue(self, tag_filter: List[str] = None) -> List[models.QueueItem]:
@@ -239,7 +239,7 @@ class PrintQueueManager:
         if not tag_filter:
             # Clear entire queue
             self.queue = []
-            logger.info("Cleared entire shared queue")
+            logger.info("Cleared entire queue")
             return True
         else:
             # Clear only items matching tags
@@ -249,7 +249,7 @@ class PrintQueueManager:
                 if not any(tag in item.tags for tag in tag_filter)
             ]
             removed_count = original_length - len(self.queue)
-            logger.info(f"Cleared {removed_count} items with tags {tag_filter} from shared queue")
+            logger.info(f"Cleared {removed_count} items with tags {tag_filter} from queue")
             return removed_count > 0
     
     def reorder_queue(self, item_ids: List[str]) -> bool:
@@ -268,7 +268,7 @@ class PrintQueueManager:
         
         # Combine reordered items with remaining items
         self.queue = reordered_items + items_not_in_reorder
-        logger.info("Reordered shared queue")
+        logger.info("Reordered queue")
         return True
     
     def get_all_tags(self) -> List[str]:

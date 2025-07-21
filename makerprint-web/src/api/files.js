@@ -41,9 +41,9 @@ export const moveFileOrFolder = (filePath, newFolderPath) => {
     return axios.put(`${API_URL}/files/${encodedPath}/move/`, { new_folder_path: newFolderPath });
 };
 
-// Shared Queue API
+// Queue API
 
-export const fetchSharedQueue = (tags = null) => {
+export const fetchQueue = (tags = null) => {
     const params = tags ? { tags: tags.join(',') } : {};
     return axios.get(`${API_URL}/queue/`, { params }).then((res) => res.data);
 };
@@ -52,19 +52,19 @@ export const fetchQueueTags = () => {
     return axios.get(`${API_URL}/queue/tags/`).then((res) => res.data);
 };
 
-export const addToSharedQueue = (filePath, tags = []) => {
+export const addToQueue = (filePath, tags = []) => {
     return axios.post(`${API_URL}/queue/`, { file_path: filePath, tags });
 };
 
-export const removeFromSharedQueue = (queueItemId) => {
+export const removeFromQueue = (queueItemId) => {
     return axios.delete(`${API_URL}/queue/${queueItemId}`);
 };
 
-export const reorderSharedQueue = (itemIds) => {
+export const reorderQueue = (itemIds) => {
     return axios.put(`${API_URL}/queue/reorder/`, { item_ids: itemIds });
 };
 
-export const clearSharedQueue = (tags = null) => {
+export const clearQueue = (tags = null) => {
     const params = tags ? { tags: tags.join(',') } : {};
     return axios.delete(`${API_URL}/queue/`, { params });
 };

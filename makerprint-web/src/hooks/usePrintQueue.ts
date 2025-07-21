@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
-    fetchSharedQueue,
+    fetchQueue,
     fetchQueueTags,
-    addToSharedQueue,
-    removeFromSharedQueue,
-    reorderSharedQueue,
-    clearSharedQueue
+    addToQueue,
+    removeFromQueue,
+    reorderQueue,
+    clearQueue
 } from '@/api/files';
 import { startPrinter } from '@/api/printers';
 
@@ -27,11 +27,11 @@ export function usePrintQueue() {
     const loadQueue = async (tagFilter?: string[]) => {
         try {
             setLoading(true);
-            const queueData = await fetchSharedQueue(tagFilter);
+            const queueData = await fetchQueue(tagFilter);
             setQueue(queueData);
             setError(null);
         } catch (err: any) {
-            setError(err.message || 'Failed to load shared queue');
+            setError(err.message || 'Failed to load queue');
         } finally {
             setLoading(false);
         }
@@ -48,7 +48,7 @@ export function usePrintQueue() {
 
     const addFileToQueue = async (filePath: string, tags: string[] = []) => {
         try {
-            await addToSharedQueue(filePath, tags);
+            await addToQueue(filePath, tags);
             await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
             await loadTags(); // Reload tags as new ones might have been added
             setError(null);
@@ -60,7 +60,7 @@ export function usePrintQueue() {
 
     const removeFileFromQueue = async (queueItemId: string) => {
         try {
-            await removeFromSharedQueue(queueItemId);
+            await removeFromQueue(queueItemId);
             await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
             await loadTags(); // Reload tags as some might have been removed
             setError(null);
@@ -91,7 +91,7 @@ export function usePrintQueue() {
             const newIds = [...currentIds];
             [newIds[currentIndex], newIds[newIndex]] = [newIds[newIndex], newIds[currentIndex]];
             
-            await reorderSharedQueue(newIds);
+            await reorderQueue(newIds);
             await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
             setError(null);
         } catch (err: any) {
@@ -102,7 +102,7 @@ export function usePrintQueue() {
 
     const clearAllQueue = async (tagFilter?: string[]) => {
         try {
-            await clearSharedQueue(tagFilter);
+            await clearQueue(tagFilter);
             await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
             await loadTags();
             setError(null);
@@ -134,7 +134,7 @@ export function usePrintQueue() {
                 await startPrinter(printerName, queueItem.file_path);
 
                 // TODO: only remove when print is marked as "finished" + the print is successfull
-                // await removeFromSharedQueue(queueItemId);
+                // await removeFromQueue(queueItemId);
                 // await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
                 // setError(null);
             } else {
