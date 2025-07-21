@@ -245,6 +245,16 @@ class PrinterManager:
     
     def start_print(self, printer_name: str, filename: str) -> Optional[WorkerResponse]:
         """Start printing a file"""
+        # try to start the worker if not already running
+        if not self._ensure_worker_running(printer_name):
+            return WorkerResponse(success=False, error="Failed to start printer worker")
+        
+        # if not connected, connect first
+        if self.get_printer_status(printer_name)["status"] != "connected":
+            connect_response = self.connect_printer(printer_name)
+            if not connect_response.success:
+                return connect_response
+
         command = WorkerCommand(action="start", data={"filename": filename})
         return self._send_command(printer_name, command)
     

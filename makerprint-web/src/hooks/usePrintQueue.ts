@@ -7,6 +7,7 @@ import {
     reorderSharedQueue,
     clearSharedQueue
 } from '@/api/files';
+import { startPrinter } from '@/api/printers';
 
 interface QueueItem {
     id: string;
@@ -121,12 +122,24 @@ export function usePrintQueue() {
         await loadQueue();
     };
 
-    const startPrint = async (queueItemId: string) => {
-        // This would typically call the printer API to start printing
-        // For now, just remove from queue as it's "printing"
+    const startPrint = async (queueItemId: string, printerName?: string) => {
         try {
-            console.log(`Starting print for queue item: ${queueItemId}`);
-            // Could call printer start API here
+            const queueItem = queue.find(item => item.id === queueItemId);
+            if (!queueItem) {
+                throw new Error('Queue item not found');
+            }
+
+            if (printerName) {
+                console.log(`Starting print for queue item: ${queueItemId} on printer: ${printerName}`);
+                await startPrinter(printerName, queueItem.file_path);
+
+                // TODO: only remove when print is marked as "finished" + the print is successfull
+                // await removeFromSharedQueue(queueItemId);
+                // await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
+                // setError(null);
+            } else {
+                throw new Error('Printer name is required to start print');
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to start print');
             throw err;

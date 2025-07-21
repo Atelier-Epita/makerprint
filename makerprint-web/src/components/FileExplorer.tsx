@@ -74,7 +74,9 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
     onAddToQueue,
     allFolders
 }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    // if parent folder, expand by default
+    const isParentFolder = parentPath === '';
+    const [isExpanded, setIsExpanded] = useState(isParentFolder);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(node.name);
     const [showMoveDialog, setShowMoveDialog] = useState(false);

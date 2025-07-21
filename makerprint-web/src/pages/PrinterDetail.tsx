@@ -160,6 +160,27 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         setCommand('');
     };
 
+    const handleStartPrint = async (queueItemId: string) => {
+        if (!name) {
+            console.error('Printer name is not available');
+            return;
+        }
+
+        try {
+            await startPrint(queueItemId, name);
+            toast({
+                title: 'Success',
+                description: 'Print job started successfully',
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to start print',
+                variant: 'destructive',
+            });
+        }
+    };
+
     // Error handling
     if (!name) {
         navigate('/');
@@ -590,7 +611,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                                     queue={queue}
                                     availableTags={availableTags}
                                     activeTagFilter={activeTagFilter}
-                                    onStartPrint={startPrint}
+                                    onStartPrint={handleStartPrint}
                                     onRemoveFromQueue={removeFromQueue}
                                     onReorderQueue={reorderQueue}
                                     onClearQueue={clearQueue}
