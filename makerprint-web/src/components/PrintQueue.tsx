@@ -204,13 +204,15 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                         {queue.map((item, index) => (
                             <div
                                 key={item.id}
-                                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"
+                                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:bg-gray-50"
                             >
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <File className="h-4 w-4 text-gray-500" />
-                                        <span className="font-medium text-sm">{item.file_name}</span>
-                                        <Badge variant="secondary">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start gap-2 mb-1">
+                                        <File className="h-4 w-4 text-gray-500 shrink-0 mt-0.5" />
+                                        <div className="flex-1 min-w-0">
+                                            <span className="font-medium text-sm break-words">{item.file_name}</span>
+                                        </div>
+                                        <Badge variant="secondary" className="shrink-0 ml-2">
                                             #{index + 1}
                                         </Badge>
                                     </div>
@@ -232,16 +234,17 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center justify-between sm:justify-end gap-1 w-full sm:w-auto">
                                     {/* Reorder buttons */}
                                     {onReorderQueue && (
-                                        <>
+                                        <div className="flex gap-0.5 sm:gap-1">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 disabled={index === 0}
                                                 onClick={() => handleReorderQueue(item.id, 'up')}
-                                                className="h-8 w-8 p-0"
+                                                className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                                title="Move up"
                                             >
                                                 <ArrowUp className="h-3 w-3" />
                                             </Button>
@@ -250,35 +253,40 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                 size="sm"
                                                 disabled={index === queue.length - 1}
                                                 onClick={() => handleReorderQueue(item.id, 'down')}
-                                                className="h-8 w-8 p-0"
+                                                className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                                title="Move down"
                                             >
                                                 <ArrowDown className="h-3 w-3" />
                                             </Button>
-                                        </>
+                                        </div>
                                     )}
 
-                                    {/* Print action buttons */}
-                                    {index === 0 && onStartPrint && (
+                                    <div className="flex gap-0.5 sm:gap-1">
+                                        {/* Print action buttons */}
+                                        {onStartPrint && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleStartPrint(item.id)}
+                                                className="h-6 px-1.5 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                                                title="Start print"
+                                            >
+                                                <Play className="h-3 w-3 sm:mr-1" />
+                                                <span className="hidden sm:inline">Start</span>
+                                            </Button>
+                                        )}
+
+                                        {/* Remove button */}
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="sm"
-                                            onClick={() => handleStartPrint(item.id)}
-                                            className="h-8"
+                                            onClick={() => handleRemoveFromQueue(item.id)}
+                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
+                                            title="Remove from queue"
                                         >
-                                            <Play className="h-3 w-3 mr-1" />
-                                            Start
+                                            <X className="h-3 w-3" />
                                         </Button>
-                                    )}
-
-                                    {/* Remove button */}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleRemoveFromQueue(item.id)}
-                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </Button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
