@@ -75,7 +75,7 @@ def create_mock_printer(i):
             (),
             {
                 "device": device.port,
-                "name": f"MockPrinter_{i+1}",
+                "name": f"MockPrinter{i}",
                 "description": f"Mock Printer Device {i}",
             },
         )()
