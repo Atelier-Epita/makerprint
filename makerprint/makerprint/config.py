@@ -66,38 +66,50 @@ class PrinterConfig:
         except Exception as e:
             self.logger.error(f"Failed to save configuration: {e}")
     
+    def _is_potential_printer_device(self, device) -> bool:
+        """Check if a device could be a printer based on its description"""
+        white_list = ['usb', 'serial', 'arduino', 'ch340', 'cp210', 'ftdi']
+        return any(keyword in device.description.lower() for keyword in white_list)
+    
+    def _extract_device_info(self, device) -> Dict:
+        """Extract device information for printer configuration"""
+        vid_str = None
+        pid_str = None
+        if hasattr(device, 'vid') and device.vid is not None:
+            vid_str = f"{device.vid:04x}"
+        if hasattr(device, 'pid') and device.pid is not None:
+            pid_str = f"{device.pid:04x}"
+        
+        return {
+            "usb_vid": vid_str,
+            "usb_pid": pid_str,
+            "serial_number": getattr(device, 'serial_number', None),
+            "preferred_baud": None
+        }
+
     def create_default_config(self):
         """Create a default configuration file based on detected devices"""
         self.logger.info("Creating default printer configuration...")
         
-        # Get all available serial devices
         devices = serial.tools.list_ports.comports()
-        
         printers = {}
         
-        # Create entries for detected USB devices that might be printers
+        # create entries for detected USB devices that might be printers
         for i, device in enumerate(devices):
-            if any(keyword in device.description.lower() for keyword in ['usb', 'serial', 'arduino', 'ch340', 'cp210', 'ftdi']):
+            if self._is_potential_printer_device(device):
                 printer_name = f"Printer_{i+1}"
-                
-                # Convert VID/PID to hex strings if they exist
-                vid_str = None
-                pid_str = None
-                if hasattr(device, 'vid') and device.vid is not None:
-                    vid_str = f"{device.vid:04x}"
-                if hasattr(device, 'pid') and device.pid is not None:
-                    pid_str = f"{device.pid:04x}"
+                device_info = self._extract_device_info(device)
                 
                 printers[printer_name] = {
-                    "usb_vid": vid_str,
-                    "usb_pid": pid_str,
-                    "serial_number": device.serial_number if hasattr(device, 'serial_number') else None,
-                    "display_name": printer_name,
-                    "preferred_baud": None
+                    **device_info,
+                    "display_name": printer_name
                 }
+            else:
+                self.logger.debug(f"Skipping non-printer device: {device.description}, {device.device}, {device.serial_number}")
         
-        # If no USB devices found, create mock printers for development
-        if not printers:
+        # if debug mode, add some mock printers
+        debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
+        if debug_mode:
             for i in range(3):
                 printer_name = f"MockPrinter_{i+1}"
                 printers[printer_name] = {
@@ -231,7 +243,7 @@ class PrinterConfig:
         """Auto-detect and add new devices"""
         configured_devices = set()
         
-        # Build set of already configured USB devices
+        # Build set of already configured USB devices (vid:pid, serial)
         for config in self.get_all_configured_printers().values():
             usb_vid = config.get('usb_vid', '')
             usb_pid = config.get('usb_pid', '')
@@ -240,8 +252,12 @@ class PrinterConfig:
             if vid_pid != ":" or serial:
                 configured_devices.add((vid_pid, serial))
         
+        already_available_paths = set(available.values())
         for device_path, device in current_devices.items():
-            if any(keyword in device.description.lower() for keyword in ['usb', 'serial', 'arduino', 'ch340', 'cp210', 'ftdi']):
+            if device_path in already_available_paths:
+                continue # skip because already configured
+                
+            if self._is_potential_printer_device(device):
                 # Convert VID/PID to hex strings for comparison
                 vid = getattr(device, 'vid', None)
                 pid = getattr(device, 'pid', None)
@@ -250,12 +266,21 @@ class PrinterConfig:
                 vid_pid = f"{vid_str}:{pid_str}"
                 serial = getattr(device, 'serial_number', '')
                 
+                # Only add if not already configured
                 if (vid_pid, serial) not in configured_devices:
                     # Create a temporary name for this auto-detected device
-                    temp_name = f"AutoDetected_{getattr(device, 'name', 'Unknown')}"
-                    if temp_name not in available:
-                        available[temp_name] = device_path
-                        self.logger.info(f"Auto-detected new printer device: {device_path} ({device.description})")
+                    device_name = getattr(device, 'name', 'Unknown')
+                    temp_name = f"AutoDetected_{device_name}"
+                    
+                    # Ensure unique name
+                    counter = 1
+                    base_name = temp_name
+                    while temp_name in available:
+                        temp_name = f"{base_name}_{counter}"
+                        counter += 1
+                    
+                    available[temp_name] = device_path
+                    self.logger.info(f"Auto-detected new printer device: {device_path} ({device.description})")
     
     def add_printer(self, printer_name: str, usb_vid: str = None, usb_pid: str = None, 
                    serial_number: str = None, properties: Dict = None) -> bool:

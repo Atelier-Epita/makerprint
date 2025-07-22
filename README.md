@@ -13,6 +13,14 @@ docker-compose up --build
 
 change the `docker-compose.yml` file to match your setup (ports, volumes, etc.)
 
+### Dev docker compose
+
+/!\ some stuff like connecting to a printer might not work because hypercorn --reload is daemonic so doesn't allow creation of child processes. (need to find a way to run this in a different way)
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
 ## Frontend
 
 ```
