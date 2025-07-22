@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from .printer import Printer
 from . import utils, models
+from .config import printer_config
 
 
 @dataclass
@@ -76,10 +77,14 @@ class PrinterWorkerProcess:
                         self.status_queue.put((self.printer_name, status_dict))
                     else:
                         # Send disconnected status
+                        printer_config_data = printer_config.get_printer_by_name(self.printer_name)
+                        display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
+                        
                         default_status = models.PrinterStatus(
                             status="disconnected",
                             port=self.printer_port,
                             name=self.printer_name,
+                            display_name=display_name,
                             baud=0,
                             progress=0
                         )
@@ -96,7 +101,10 @@ class PrinterWorkerProcess:
                 return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
             baud = data.get("baud") if data else None
-            self.printer = Printer(self.printer_port, baud=baud)
+            printer_config_data = printer_config.get_printer_by_name(self.printer_name)
+            display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
+            
+            self.printer = Printer(self.printer_port, baud=baud, printer_name=self.printer_name, display_name=display_name)
             
             # Use asyncio.run for the async connect method
             import asyncio

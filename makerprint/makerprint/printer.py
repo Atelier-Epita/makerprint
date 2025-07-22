@@ -12,7 +12,7 @@ from .utils import logger
 
 
 class Printer(printcore):
-    def __init__(self, port, baud=None, *args, **kwargs):
+    def __init__(self, port, baud=None, printer_name=None, display_name=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tempcb = self._tempcb
         self.startcb = self._startcb
@@ -26,7 +26,8 @@ class Printer(printcore):
         self.bed_temp = 0 
         self.bed_temp_target = 0 
 
-        self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
+        self.name = printer_name if printer_name else self.port
+        self.display_name = display_name
         self.current_file = None
         self.start_time = time.time() # meh just want to have a default value
         self.bed_clear = True
@@ -109,6 +110,7 @@ class Printer(printcore):
             status=status,
             port=self.port,
             name=self.name,
+            display_name=self.display_name,
             baud=self.baud,
             progress=percentage,
             timeElapsed=elapsed_time,

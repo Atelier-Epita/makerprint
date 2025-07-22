@@ -152,58 +152,66 @@ class PrinterConfig:
         usb_pid = printer_config.get('usb_pid')
         usb_location = printer_config.get('usb_location')
         
-        debug_mode = os.environ.get("DEBUG", "false").lower() == "true" # check if working in debug mode
+        debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
+        
         for device_path, device in current_devices.items():
-            if debug_mode and hasattr(device, 'description') and 'Mock' in device.description:
-                # probably overkill for now, but might be useful for dispatching later on ?
-                # For mock printers, match by the mock USB VID/PID pattern
-                if usb_vid == "1234" and usb_pid and usb_pid.startswith('500') and hasattr(device, 'description'):
-                    # Expected format: "Mock Printer Device 0", "Mock Printer Device 1", etc.
-
-                    device_index = device.description.split()[-1]  # Get the last part of the description
-                    if not device_index.isdigit():
-                        continue # skip
-
-                    device_index = int(device_index)
-                    expected_pid = f"500{device_index}"
-                    
-                    # should match the mock printer's USB PID
-                    if usb_pid == expected_pid:
-                        self.logger.debug(f"Mock printer matched: {device_path}")
-                        return device_path
-            
-            # Priority 1: Match by USB location (most reliable for devices on USB hubs)
-            elif usb_location and hasattr(device, 'location'):
-                if device.location == usb_location:
-                    # Also verify VID/PID match if available to be extra safe
-                    if usb_vid and usb_pid:
-                        device_vid = getattr(device, 'vid', None)
-                        device_pid = getattr(device, 'pid', None)
-                        if device_vid is not None and device_pid is not None:
-                            device_vid_str = f"{device_vid:04x}" if isinstance(device_vid, int) else str(device_vid)
-                            device_pid_str = f"{device_pid:04x}" if isinstance(device_pid, int) else str(device_pid)
-                            if (device_vid_str.lower() == usb_vid.lower() and
-                                device_pid_str.lower() == usb_pid.lower()):
-                                return device_path
-                    else:
-                        # If no VID/PID to verify, trust the location
-                        return device_path
-            
-            # Priority 2: Match by USB VID/PID (fallback for devices without location)
-            elif usb_vid and usb_pid and not usb_location:
-                device_vid = getattr(device, 'vid', None)
-                device_pid = getattr(device, 'pid', None)
-                
-                if device_vid is not None and device_pid is not None:
-                    # Convert to hex strings for comparison
-                    device_vid_str = f"{device_vid:04x}" if isinstance(device_vid, int) else str(device_vid)
-                    device_pid_str = f"{device_pid:04x}" if isinstance(device_pid, int) else str(device_pid)
-                    
-                    if (device_vid_str.lower() == usb_vid.lower() and
-                        device_pid_str.lower() == usb_pid.lower()):
-                        return device_path
+            if debug_mode and self._is_mock_device_match(device, usb_vid, usb_pid):
+                return device_path
+            elif self._is_location_match(device, usb_location, usb_vid, usb_pid):
+                return device_path
+            elif self._is_vid_pid_match(device, usb_vid, usb_pid, usb_location):
+                return device_path
         
         return None
+    
+    def _is_mock_device_match(self, device, usb_vid: str, usb_pid: str) -> bool:
+        """Check if device matches mock printer pattern"""
+        if not (hasattr(device, 'description') and 'Mock' in device.description):
+            return False
+        
+        if usb_vid != "1234" or not usb_pid or not usb_pid.startswith('500'):
+            return False
+        
+        device_index = device.description.split()[-1]
+        if not device_index.isdigit():
+            return False
+        
+        expected_pid = f"500{device_index}"
+        return usb_pid == expected_pid
+    
+    def _is_location_match(self, device, usb_location: str, usb_vid: str, usb_pid: str) -> bool:
+        """Check if device matches by USB location"""
+        if not usb_location or not hasattr(device, 'location'):
+            return False
+        
+        if device.location != usb_location:
+            return False
+        
+        if usb_vid and usb_pid:
+            return self._verify_vid_pid(device, usb_vid, usb_pid)
+        
+        return True
+    
+    def _is_vid_pid_match(self, device, usb_vid: str, usb_pid: str, usb_location: str) -> bool:
+        """Check if device matches by VID/PID (when no location specified)"""
+        if not usb_vid or not usb_pid or usb_location:
+            return False
+        
+        return self._verify_vid_pid(device, usb_vid, usb_pid)
+    
+    def _verify_vid_pid(self, device, expected_vid: str, expected_pid: str) -> bool:
+        """Verify device VID/PID matches expected values"""
+        device_vid = getattr(device, 'vid', None)
+        device_pid = getattr(device, 'pid', None)
+        
+        if device_vid is None or device_pid is None:
+            return False
+        
+        device_vid_str = f"{device_vid:04x}" if isinstance(device_vid, int) else str(device_vid)
+        device_pid_str = f"{device_pid:04x}" if isinstance(device_pid, int) else str(device_pid)
+        
+        return (device_vid_str.lower() == expected_vid.lower() and
+                device_pid_str.lower() == expected_pid.lower())
     
     def get_printer_by_device(self, device_path: str) -> Optional[Dict]:
         """Get printer configuration by device path"""
@@ -237,45 +245,79 @@ class PrinterConfig:
     
     def _auto_detect_new_devices(self, current_devices: Dict, available: Dict):
         """Auto-detect and add new devices"""
-        configured_devices = set()
-        
-        # Build set of already configured USB devices (vid:pid:location)
-        for config in self.get_all_configured_printers().values():
-            usb_vid = config.get('usb_vid', '')
-            usb_pid = config.get('usb_pid', '')
-            usb_location = config.get('usb_location', '')
-            vid_pid_location = f"{usb_vid}:{usb_pid}:{usb_location}"
-            if vid_pid_location != "::":
-                configured_devices.add(vid_pid_location)
-        
+        configured_devices = self._get_configured_device_signatures()
         already_available_paths = set(available.values())
+        new_printers_added = False
+        
         for device_path, device in current_devices.items():
             if device_path in already_available_paths:
-                continue # skip because already configured
-                
-            # Convert VID/PID to hex strings for comparison
-            vid = getattr(device, 'vid', None)
-            pid = getattr(device, 'pid', None)
-            location = getattr(device, 'location', '')
-            vid_str = f"{vid:04x}" if vid is not None else ""
-            pid_str = f"{pid:04x}" if pid is not None else ""
-            vid_pid_location = f"{vid_str}:{pid_str}:{location}"
+                continue
             
-            # Only add if not already configured
-            if vid_pid_location not in configured_devices:
-                # Create a temporary name for this auto-detected device
-                device_name = getattr(device, 'name', 'Unknown')
-                temp_name = f"AutoDetected_{device_name}"
-                
-                # Ensure unique name
-                counter = 1
-                base_name = temp_name
-                while temp_name in available:
-                    temp_name = f"{base_name}_{counter}"
-                    counter += 1
-                
-                available[temp_name] = device_path
+            device_signature = self._get_device_signature(device)
+            if device_signature not in configured_devices:
+                printer_name = self._add_auto_detected_printer(device, device_path)
+                available[printer_name] = device_path
+                new_printers_added = True
                 self.logger.info(f"Auto-detected new printer device: {device_path} ({device.description})")
+        
+        if new_printers_added:
+            self.save_config()
+    
+    def _get_configured_device_signatures(self) -> set:
+        """Get set of already configured device signatures"""
+        configured_devices = set()
+        for config in self.get_all_configured_printers().values():
+            signature = self._get_config_signature(config)
+            if signature != "::":
+                configured_devices.add(signature)
+        return configured_devices
+    
+    def _get_device_signature(self, device) -> str:
+        """Get device signature for comparison"""
+        vid = getattr(device, 'vid', None)
+        pid = getattr(device, 'pid', None)
+        location = getattr(device, 'location', '')
+        vid_str = f"{vid:04x}" if vid is not None else ""
+        pid_str = f"{pid:04x}" if pid is not None else ""
+        return f"{vid_str}:{pid_str}:{location}"
+    
+    def _get_config_signature(self, config: Dict) -> str:
+        """Get config signature for comparison"""
+        usb_vid = config.get('usb_vid', '')
+        usb_pid = config.get('usb_pid', '')
+        usb_location = config.get('usb_location', '')
+        return f"{usb_vid}:{usb_pid}:{usb_location}"
+    
+    def _add_auto_detected_printer(self, device, device_path: str) -> str:
+        """Add auto-detected printer to config and return its name"""
+        device_name = getattr(device, 'name', 'Unknown')
+        printer_name = f"AutoDetected_{device_name}"
+        
+        printer_name = self._ensure_unique_printer_name(printer_name)
+        
+        device_info = self._extract_device_info(device)
+        printer_config = {
+            **device_info,
+            "display_name": printer_name,
+            "auto_detected": True
+        }
+        
+        if 'printers' not in self.config_data:
+            self.config_data['printers'] = {}
+        
+        self.config_data['printers'][printer_name] = printer_config
+        self.name_mapping[printer_name] = printer_config
+        
+        return printer_name
+    
+    def _ensure_unique_printer_name(self, base_name: str) -> str:
+        """Ensure printer name is unique"""
+        name = base_name
+        counter = 1
+        while name in self.get_all_configured_printers():
+            name = f"{base_name}_{counter}"
+            counter += 1
+        return name
     
     def get_printer_preferred_baud(self, printer_name: str) -> Optional[int]:
         """Get printer preferred baudrate"""
@@ -286,13 +328,19 @@ class PrinterConfig:
     
     def is_printer_available(self, printer_name: str) -> tuple[bool, Optional[str]]:
         """Check if a specific printer is available and return its device path"""
+        # First check if it's a configured printer
         printer_config_data = self.get_printer_by_name(printer_name)
-        if not printer_config_data:
-            return False, None
+        if printer_config_data:
+            current_devices = {device.device: device for device in serial.tools.list_ports.comports()}
+            device_path = self._find_device_path(printer_config_data, current_devices)
+            return device_path is not None, device_path
         
-        current_devices = {device.device: device for device in serial.tools.list_ports.comports()}
-        device_path = self._find_device_path(printer_config_data, current_devices)
-        return device_path is not None, device_path
+        # if not config, check if it's an auto-detected printer
+        available_printers = self.get_available_printers()
+        if printer_name in available_printers:
+            return True, available_printers[printer_name]
+        
+        return False, None
 
 
 # Global config instance
