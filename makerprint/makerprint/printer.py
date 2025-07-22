@@ -28,7 +28,7 @@ class Printer(printcore):
 
         self.name = utils.PORTS_TO_NAMES().get(self.port, self.port)
         self.current_file = None
-        self.start_time = None
+        self.start_time = time.time() # meh just want to have a default value
         self.bed_clear = True
 
         self.statuscheck = True
