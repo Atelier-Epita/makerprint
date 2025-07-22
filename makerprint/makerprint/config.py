@@ -125,7 +125,7 @@ class PrinterConfig:
             "printers": printers,
             "global_settings": {
                 "auto_detect_new_devices": True,
-                "default_baud_rates": [250000, 115200, 57600, 38400, 19200, 9600],
+                "default_baud_rates": [250000, 115200, 57600],
                 "connection_timeout": 10,
                 "status_update_interval": 1.0
             }
@@ -282,58 +282,6 @@ class PrinterConfig:
                     available[temp_name] = device_path
                     self.logger.info(f"Auto-detected new printer device: {device_path} ({device.description})")
     
-    def add_printer(self, printer_name: str, usb_vid: str = None, usb_pid: str = None, 
-                   serial_number: str = None, properties: Dict = None) -> bool:
-        """Add a new printer configuration"""
-        if 'printers' not in self.config_data:
-            self.config_data['printers'] = {}
-        
-        if not usb_vid and not usb_pid and not serial_number:
-            self.logger.error("Must provide at least USB VID/PID or serial number")
-            return False
-        
-        default_properties = {
-            "preferred_baud": None
-        }
-        
-        if properties:
-            default_properties.update(properties)
-        
-        self.config_data['printers'][printer_name] = {
-            "usb_vid": usb_vid,
-            "usb_pid": usb_pid,
-            "serial_number": serial_number,
-            "display_name": printer_name,
-            "preferred_baud": default_properties.get("preferred_baud")
-        }
-        
-        self.save_config()
-        self._update_device_mapping()
-        return True
-    
-    def remove_printer(self, printer_name: str) -> bool:
-        """Remove a printer configuration"""
-        if 'printers' not in self.config_data or printer_name not in self.config_data['printers']:
-            return False
-        
-        del self.config_data['printers'][printer_name]
-        self.save_config()
-        self._update_device_mapping()
-        return True
-    
-    def update_printer_properties(self, printer_name: str, properties: Dict) -> bool:
-        """Update printer properties"""
-        if printer_name not in self.name_mapping:
-            return False
-        
-        # Only allow updating preferred_baud
-        if 'preferred_baud' in properties:
-            self.config_data['printers'][printer_name]['preferred_baud'] = properties['preferred_baud']
-            self.save_config()
-            self._update_device_mapping()
-            return True
-        return False
-    
     def get_printer_preferred_baud(self, printer_name: str) -> Optional[int]:
         """Get printer preferred baudrate"""
         config = self.get_printer_by_name(printer_name)
@@ -341,9 +289,15 @@ class PrinterConfig:
             return config.get('preferred_baud')
         return None
     
-    def set_printer_preferred_baud(self, printer_name: str, baud_rate: int) -> bool:
-        """Set printer preferred baudrate"""
-        return self.update_printer_properties(printer_name, {'preferred_baud': baud_rate})
+    def is_printer_available(self, printer_name: str) -> tuple[bool, Optional[str]]:
+        """Check if a specific printer is available and return its device path"""
+        printer_config_data = self.get_printer_by_name(printer_name)
+        if not printer_config_data:
+            return False, None
+        
+        current_devices = {device.device: device for device in serial.tools.list_ports.comports()}
+        device_path = self._find_device_path(printer_config_data, current_devices)
+        return device_path is not None, device_path
 
 
 # Global config instance

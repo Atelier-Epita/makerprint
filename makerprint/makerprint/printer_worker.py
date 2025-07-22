@@ -220,7 +220,6 @@ class PrinterWorkerProcess:
             else:
                 default_status = models.PrinterStatus(
                     status="disconnected",
-                    port=self.printer_port,
                     name=self.printer_name,
                     baud=0,
                     progress=0

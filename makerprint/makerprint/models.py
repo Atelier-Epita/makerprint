@@ -15,7 +15,7 @@ class BedTemp(pydantic.BaseModel):
 
 class PrinterStatus(pydantic.BaseModel):
     status: str = "disconnected"  # idle, printing, paused, disconnected
-    port: str
+    port: Optional[str] = None # might not be needed in the end...
     name: str
     display_name: Optional[str] = None
     baud: Optional[int] = None
