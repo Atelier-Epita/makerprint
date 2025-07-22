@@ -103,7 +103,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
             <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <PrinterHeader 
-                    name={name} 
+                    printer={printer}
                     onNavigateBack={() => navigate('/')} 
                 />
 
