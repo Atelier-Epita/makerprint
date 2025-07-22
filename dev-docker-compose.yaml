@@ -8,12 +8,12 @@ services:
     privileged: true
     container_name: makerprint-api
     restart: unless-stopped
-    devices:
-      - /dev:/dev
     volumes:
       - ./data:/data
       - ./logs:/var/log
+      - ./config:/config
       - ./makerprint/makerprint:/app/makerprint
+      - /dev:/dev
     command: ["hypercorn", "--bind", "0.0.0.0:5000", "--reload", "makerprint.main:app"]
     environment:
       - GCODEFOLDER=/data

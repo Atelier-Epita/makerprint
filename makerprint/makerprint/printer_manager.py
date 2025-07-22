@@ -10,6 +10,7 @@ from queue import Queue, Empty
 
 from .printer_worker import WorkerCommand, WorkerResponse, start_printer_worker
 from . import utils, models
+from .config import printer_config
 
 
 class PrinterManager:
@@ -46,8 +47,8 @@ class PrinterManager:
                 continue
     
     def _get_available_printers(self) -> Dict[str, str]:
-        """Get available printers from system"""
-        return utils.NAMES_TO_PORTS()
+        """Get available printers from configuration"""
+        return printer_config.get_available_printers()
     
     def _ensure_worker_running(self, printer_name: str) -> bool:
         """Ensure a worker process is running for the given printer"""
@@ -70,6 +71,11 @@ class PrinterManager:
             return False
         
         printer_port = available_printers[printer_name]
+        
+        # get printer config for display name and baud baud
+        printer_config_data = printer_config.get_printer_by_name(printer_name)
+        display_name = printer_config_data.get('display_name', printer_name) if printer_config_data else printer_name
+        preferred_baud = printer_config_data.get('preferred_baud') if printer_config_data else None
         
         try:
             # create queues
@@ -97,7 +103,9 @@ class PrinterManager:
                 "status": "disconnected",
                 "port": printer_port,
                 "name": printer_name,
+                "display_name": display_name,
                 "baud": 0,
+                "preferred_baud": preferred_baud,
                 "progress": 0,
                 "timeElapsed": 0,
                 "timeRemaining": 0,
@@ -202,11 +210,17 @@ class PrinterManager:
         
         # Return default status if printer not found
         available_printers = self._get_available_printers()
+        printer_config_data = printer_config.get_printer_by_name(printer_name)
+        display_name = printer_config_data.get('display_name', printer_name) if printer_config_data else printer_name
+        preferred_baud = printer_config_data.get('preferred_baud') if printer_config_data else None
+        
         return {
             "status": "disconnected",
             "port": available_printers.get(printer_name, ""),
             "name": printer_name,
+            "display_name": display_name,
             "baud": 0,
+            "preferred_baud": preferred_baud,
             "progress": 0,
             "timeElapsed": 0,
             "timeRemaining": 0,
@@ -225,6 +239,12 @@ class PrinterManager:
     
     def connect_printer(self, printer_name: str, baud: Optional[int] = None) -> Optional[WorkerResponse]:
         """Connect to a printer"""
+        # Use preferred baud rate if no baud specified
+        if baud is None:
+            preferred_baud = printer_config.get_printer_preferred_baud(printer_name)
+            if preferred_baud:
+                baud = preferred_baud
+        
         command = WorkerCommand(action="connect", data={"baud": baud} if baud else None)
         return self._send_command(printer_name, command)
     

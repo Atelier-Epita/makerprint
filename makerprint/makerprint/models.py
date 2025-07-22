@@ -17,7 +17,9 @@ class PrinterStatus(pydantic.BaseModel):
     status: str = "disconnected"  # idle, printing, paused, disconnected
     port: str
     name: str
+    display_name: Optional[str] = None
     baud: Optional[int] = None
+    preferred_baud: Optional[int] = None
     progress: NUMBER = 0
     timeElapsed: NUMBER = 0  # in seconds
     timeRemaining: NUMBER = 0 # in seconds

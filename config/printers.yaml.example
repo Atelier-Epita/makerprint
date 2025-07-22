@@ -1,0 +1,32 @@
+# Printer Configuration Example
+# Copy this file to printers.yaml and customize for your setup
+
+version: "1.0"
+
+printers:
+  # Example: Prusa MK3S printer (uses FTDI chip)
+  Prusa_MK3S:
+    usb_vid: "0403"  # FTDI vendor ID
+    usb_pid: "6001"  # FTDI product ID  
+    serial_number: "A50285BI"  # Optional: specific device serial number
+    display_name: "Prusa MK3S"
+    preferred_baud: 115200
+  
+  # Example: Artillery Sidewinder
+  Artillery_SW:
+    usb_vid: "2341"
+    usb_pid: "0043"
+    display_name: "Artillery Sidewinder"
+    preferred_baud: 250000
+  
+  # Example: Generic printer by serial number only
+  Workshop_Printer:
+    serial_number: "55FF6A065067555331301987"
+    display_name: "Workshop Printer"
+    preferred_baud: 115200
+
+global_settings:
+  auto_detect_new_devices: true
+  default_baud_rates: [250000, 115200, 57600]
+  connection_timeout: 10
+  status_update_interval: 1.0

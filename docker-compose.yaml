@@ -8,11 +8,11 @@ services:
     privileged: true
     container_name: makerprint-api
     restart: unless-stopped
-    devices:
-      - /dev:/dev
     volumes:
       - ./data:/data
       - ./logs:/var/log
+      - ./config:/config
+      - /dev:/dev
     environment:
       - HOST=0.0.0.0
       - PORT=5000

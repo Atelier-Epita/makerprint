@@ -1,5 +1,6 @@
 from . import utils
 from .api import app
+from .config import printer_config
 
 import os
 import asyncio
@@ -16,7 +17,7 @@ if DEBUG:
     for i in range(5):
         utils.create_mock_printer(i)
 
-    utils.logger.info(f"Mock list_ports: {utils.NAMES_TO_PORTS()}")
+    utils.logger.info(f"Available printers: {printer_config.get_available_printers()}")
 
 def main():
     config = Config()
