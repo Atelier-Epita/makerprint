@@ -7,6 +7,7 @@ import uuid
 
 from . import models, utils
 from .utils import logger
+from .persistence import SQLiteDatabase
 
 
 class FileManager:
@@ -181,10 +182,24 @@ class FileManager:
 
 
 class PrintQueueManager:
-    """Manages a print queue for all printers"""
+    """Manages a print queue for all printers with SQLite persistence"""
     
-    def __init__(self):
-        self.queue: List[models.QueueItem] = []  # Single queue for all printers
+    def __init__(self, db_path: str = None):
+        self.db = SQLiteDatabase(db_path or "data/makerprint.db")
+        self._queue: List[models.QueueItem] = []
+        self._load_queue()
+    
+    def _load_queue(self):
+        """Load queue from database on startup"""
+        self._queue = self.db.load_queue()
+        logger.info(f"Loaded {len(self._queue)} items from queue database")
+    
+    def _save_queue(self):
+        """Save current queue to database"""
+        success = self.db.save_queue(self._queue)
+        if not success:
+            logger.error("Failed to save queue to database")
+        return success
     
     def add_to_queue(self, file_path: str, file_name: str, tags: List[str] = None) -> str:
         """Add a file to the queue"""
@@ -199,31 +214,33 @@ class PrintQueueManager:
             tags=tags
         )
         
-        self.queue.append(queue_item)
+        self._queue.append(queue_item)
+        self._save_queue()
         logger.info(f"Added {file_name} to queue with tags: {tags}")
         return queue_item.id
     
     def remove_from_queue(self, queue_item_id: str) -> bool:
         """Remove an item from the queue"""
-        original_length = len(self.queue)
-        self.queue = [
-            item for item in self.queue 
+        original_length = len(self._queue)
+        self._queue = [
+            item for item in self._queue 
             if item.id != queue_item_id
         ]
         
-        success = len(self.queue) < original_length
+        success = len(self._queue) < original_length
         if success:
+            self._save_queue()
             logger.info(f"Removed queue item {queue_item_id} from queue")
         return success
     
     def get_queue(self, tag_filter: List[str] = None) -> List[models.QueueItem]:
         """Get the queue, optionally filtered by tags"""
         if not tag_filter:
-            return self.queue.copy()
+            return self._queue.copy()
         
         # Filter by tags - item must have at least one of the specified tags
         filtered_queue = []
-        for item in self.queue:
+        for item in self._queue:
             if any(tag in item.tags for tag in tag_filter):
                 filtered_queue.append(item)
         
@@ -238,47 +255,51 @@ class PrintQueueManager:
         """Clear all items from the queue, optionally filtered by tags"""
         if not tag_filter:
             # Clear entire queue
-            self.queue = []
+            self._queue = []
+            self._save_queue()
             logger.info("Cleared entire queue")
             return True
         else:
             # Clear only items matching tags
-            original_length = len(self.queue)
-            self.queue = [
-                item for item in self.queue
+            original_length = len(self._queue)
+            self._queue = [
+                item for item in self._queue
                 if not any(tag in item.tags for tag in tag_filter)
             ]
-            removed_count = original_length - len(self.queue)
+            removed_count = original_length - len(self._queue)
+            if removed_count > 0:
+                self._save_queue()
             logger.info(f"Cleared {removed_count} items with tags {tag_filter} from queue")
             return removed_count > 0
     
     def reorder_queue(self, item_ids: List[str]) -> bool:
         """Reorder items in the queue"""
-        id_to_item = {item.id: item for item in self.queue}
+        id_to_item = {item.id: item for item in self._queue}
         
         # Verify all IDs exist
         if not all(item_id in id_to_item for item_id in item_ids):
             return False
         
         # Keep items not in reorder list at the end
-        items_not_in_reorder = [item for item in self.queue if item.id not in item_ids]
+        items_not_in_reorder = [item for item in self._queue if item.id not in item_ids]
         
         # Reorder specified items
         reordered_items = [id_to_item[item_id] for item_id in item_ids]
         
         # Combine reordered items with remaining items
-        self.queue = reordered_items + items_not_in_reorder
+        self._queue = reordered_items + items_not_in_reorder
+        self._save_queue()
         logger.info("Reordered queue")
         return True
     
     def get_all_tags(self) -> List[str]:
         """Get all unique tags used in the queue"""
         all_tags = set()
-        for item in self.queue:
+        for item in self._queue:
             all_tags.update(item.tags)
         return sorted(list(all_tags))
 
 
 # Global instances
 file_manager = FileManager()
-queue_manager = PrintQueueManager()
+queue_manager = PrintQueueManager("data/makerprint.db")
