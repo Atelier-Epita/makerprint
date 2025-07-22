@@ -14,7 +14,7 @@ DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 if DEBUG:
     utils.logger.info("Debug mode enabled")
-    for i in range(5):
+    for i in range(3):
         utils.create_mock_printer(i)
 
     utils.logger.info(f"Available printers: {printer_config.get_available_printers()}")

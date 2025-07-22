@@ -4,12 +4,12 @@ Configuration management for printer mappings and properties
 import json
 import yaml
 import os
-from typing import Dict, List, Optional, Union
-from pathlib import Path
+from typing import Dict, Optional
 import serial
 import serial.tools.list_ports
+import re
 
-from . import utils, models
+from . import utils
 
 
 class PrinterConfig:
@@ -149,9 +149,29 @@ class PrinterConfig:
         usb_pid = printer_config.get('usb_pid')
         serial_number = printer_config.get('serial_number')
         
+        debug_mode = os.environ.get("DEBUG", "false").lower() == "true" # check if working in debug mode
         for device_path, device in current_devices.items():
+            if debug_mode and hasattr(device, 'description') and 'Mock' in device.description:
+                # probably overkill for now, but might be useful for dispatching later on ?
+                # For mock printers, match by the mock USB VID/PID pattern
+                if usb_vid == "1234" and usb_pid and usb_pid.startswith('500') and hasattr(device, 'description'):
+                    # Expected format: "Mock Printer Device 0", "Mock Printer Device 1", etc.
+
+                    device_index = device.description.split()[-1]  # Get the last part of the description
+                    if not device_index.isdigit():
+                        continue # skip
+
+                    device_index = int(device_index)
+                    expected_pid = f"500{device_index}"
+                    expected_serial = f"MOCK{device_index:0>4}"
+                    
+                    # should match the mock printer's USB PID and serial number
+                    if usb_pid == expected_pid and (not serial_number or serial_number == expected_serial):
+                        self.logger.debug(f"Mock printer matched: {device_path}")
+                        return device_path
+            
             # Match by USB VID/PID
-            if usb_vid and usb_pid:
+            elif usb_vid and usb_pid:
                 device_vid = getattr(device, 'vid', None)
                 device_pid = getattr(device, 'pid', None)
                 
