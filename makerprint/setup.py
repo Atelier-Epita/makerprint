@@ -13,6 +13,7 @@ setup(
         "environs",
         "Printrun",
         "hypercorn",
+        "PyYAML",
     ],
     extras_require={
         'dev': [

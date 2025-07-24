@@ -38,6 +38,7 @@
     /* Printer status colors with updated values */
     --printer-idle: 142, 70%, 45%;
     --printer-printing: 210, 100%, 56%;
+    --printer-paused: 45, 93%, 47%;
     --printer-error: 0, 84%, 60%;
     --printer-disconnected: 0, 0%, 62%;
     
@@ -102,6 +103,10 @@
   
   .status-badge-printing {
     @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  }
+  
+  .status-badge-paused {
+    @apply bg-gradient-to-r from-yellow-500 to-orange-500;
   }
   
   .status-badge-idle {

@@ -78,7 +78,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     // Loading and error states
     if (error) {
         return (
-            <div className="container py-8">
+            <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Printer not found</h2>
                     <Button onClick={() => navigate('/')}>Return to Dashboard</Button>
@@ -89,7 +89,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
 
     if (!printer || loading) {
         return (
-            <div className="container py-8">
+            <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Loading Printer Details...</h2>
                     <p className="text-gray-500">Please wait while we fetch the printer status.</p>
@@ -100,10 +100,10 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-            <div className="container py-6 max-w-5xl">
+            <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <PrinterHeader 
-                    name={name} 
+                    printer={printer}
                     onNavigateBack={() => navigate('/')} 
                 />
 

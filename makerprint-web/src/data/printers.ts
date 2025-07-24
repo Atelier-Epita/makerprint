@@ -20,6 +20,8 @@ export const files = [
 
 export interface Printer {
   name: string;
+  display_name?: string; // sent by the backend
+  displayName?: string; // computed for the front
   status: PrinterStatus;
   nozzleTemp: {
     current: number;

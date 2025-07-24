@@ -58,7 +58,7 @@ const PrinterCard: React.FC<PrinterCardProps> = ({ printer }) => {
       
       <CardContent className="p-6 pt-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold">{printer.name}</h3>
+          <h3 className="text-xl font-bold">{printer.displayName}</h3>
           <span className={getStatusBadgeClass(printer.status)}>
             <span className={`w-2 h-2 rounded-full ${getStatusColor(printer.status)}`} />
             <span>{getStatusText(printer.status)}</span>

@@ -24,7 +24,14 @@ export function usePrinterStatus(printerName?: string) {
         }
 
         fetchPrinterStatus(printerName)
-            .then(res => setStatus(res.data))
+            .then(res => {
+                const printerData = res.data;
+                const enrichedPrinter = {
+                    ...printerData,
+                    displayName: printerData.display_name || printerData.name
+                };
+                setStatus(enrichedPrinter);
+            })
             .catch(err => setError(err.message || 'Erreur inconnue'))
             .finally(() => setLoading(false));
     };
