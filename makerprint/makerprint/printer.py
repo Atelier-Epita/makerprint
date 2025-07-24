@@ -30,15 +30,9 @@ class Printer(printcore):
         self.display_name = display_name
         self.current_file = None
         self.start_time = time.time() # meh just want to have a default value
+        self.total_paused_duration = 0
+        self.pause_start_time = None
         self.bed_clear = True
-
-        self.statuscheck = True
-        self.status_thread = threading.Thread(
-            target=self._status_thread,
-            name=f"PrinterStatusThread-{self.port}",
-            args=(),
-            daemon=True,
-        )
 
     def prepare_gcode(self, filename):
         folder = utils.GCODEFOLDER
@@ -57,13 +51,44 @@ class Printer(printcore):
     def _startcb(self, resuming=False):
         if not resuming:
             self.start_time = time.time()
+            self.total_paused_duration = 0
+            self.pause_start_time = None
             self.bed_clear = False
+        else:
+            if self.pause_start_time is not None:
+                self.total_paused_duration += time.time() - self.pause_start_time
+                self.pause_start_time = None
 
     def _endcb(self):
-        time_string = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.start_time))
-        logger.info(f"Print {self.current_file} finished on {self.name} in {time_string}")
+        if not self.paused:
+            self._reset_print_timing()
+            if self.start_time is not None:
+                elapsed = self._get_actual_elapsed_time()
+                time_string = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+                logger.info(f"Print {self.current_file} finished on {self.name} in {time_string}")
+            else:
+                logger.info(f"Print {self.current_file} finished on {self.name}")
+        else:
+            self.pause_start_time = time.time()
+
+    def _reset_print_timing(self):
         self.start_time = None
         self.current_file = None
+        self.total_paused_duration = 0
+        self.pause_start_time = None
+
+    def _get_actual_elapsed_time(self):
+        if self.start_time is None:
+            return 0
+        
+        current_time = time.time()
+        raw_elapsed = current_time - self.start_time
+        
+        current_pause_duration = 0
+        if self.paused and self.pause_start_time is not None:
+            current_pause_duration = current_time - self.pause_start_time
+        
+        return raw_elapsed - self.total_paused_duration - current_pause_duration
 
     def _tempcb(self, tempstr):
         temps = utils.parse_temperature_report(tempstr)
@@ -100,7 +125,7 @@ class Printer(printcore):
             percentage = round(fraction * 100, 1)
 
             if self.start_time:
-                elapsed_time = time.time() - self.start_time
+                elapsed_time = self._get_actual_elapsed_time()
                 total_time = elapsed_time / max(fraction, 0.01)
                 time_remaining = (total_time - elapsed_time)
 
@@ -125,20 +150,16 @@ class Printer(printcore):
             ),
         )
 
-    def _status_loop(self):
-        while self.online:
-            self.send_now("M105")
-            threading.Event().wait(2)
-
-    def _status_thread(self):
-        while self.statuscheck:
-            self._status_loop()
-            threading.Event().wait(1)
+    def request_temperature_update(self):
+        """Request a temperature update from the printer"""
+        if self.online:
+            try:
+                self.send_now("M105")
+            except Exception as e:
+                logger.error(f"Failed to request temperature update for {self.name}: {e}")
+                raise
 
     def disconnect(self):
-        self.statuscheck = False
-        if self.status_thread.is_alive():
-            self.status_thread.join(timeout=1)
         return super().disconnect()
     
     def clear_bed(self):
@@ -183,5 +204,3 @@ class Printer(printcore):
             )
 
         logger.debug(f"Connected to printer {self.name} on {self.port} at {self.baud} baud")
-        self.statuscheck = True
-        self.status_thread.start()

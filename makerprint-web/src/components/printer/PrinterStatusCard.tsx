@@ -39,8 +39,9 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                 style={{
                     background: `hsl(${printer.status === 'printing' ? 'var(--printer-printing)' :
                         printer.status === 'idle' ? 'var(--printer-idle)' :
-                            printer.status === 'error' ? 'var(--printer-error)' :
-                                'var(--printer-disconnected)'
+                            printer.status === 'paused' ? 'var(--printer-paused)' :
+                                printer.status === 'error' ? 'var(--printer-error)' :
+                                    'var(--printer-disconnected)'
                         })`
                 }}
             />
@@ -140,10 +141,12 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                                             width: `${printer.progress}%`,
                                             background: `linear-gradient(90deg, hsl(${printer.status === 'printing' ? 'var(--printer-printing)' :
                                                 printer.status === 'idle' ? 'var(--printer-idle)' :
-                                                    'var(--printer-disconnected)'
+                                                    printer.status === 'paused' ? 'var(--printer-paused)' :
+                                                        'var(--printer-disconnected)'
                                                 }), hsl(${printer.status === 'printing' ? 'var(--printer-printing)' :
                                                     printer.status === 'idle' ? 'var(--printer-idle)' :
-                                                        'var(--printer-disconnected)'
+                                                        printer.status === 'paused' ? 'var(--printer-paused)' :
+                                                            'var(--printer-disconnected)'
                                                 }) 70%)`
                                         }}
                                     />

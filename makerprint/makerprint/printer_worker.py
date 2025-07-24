@@ -31,11 +31,13 @@ class WorkerResponse:
 
 class PrinterWorkerProcess:
     """Worker process that manages a single printer"""
+    DEFAULT_MONITOR_INTERVAL = 2.5
     
     def __init__(self, printer_name: str, printer_port: str, 
                  command_queue: multiprocessing.Queue, 
                  response_queue: multiprocessing.Queue, 
-                 status_queue: multiprocessing.Queue):
+                 status_queue: multiprocessing.Queue,
+                 monitor_interval: float = None):
         self.printer_name = printer_name
         self.printer_port = printer_port
         self.command_queue = command_queue
@@ -50,7 +52,7 @@ class PrinterWorkerProcess:
         signal.signal(signal.SIGINT, self._signal_handler)
         
         self.status_thread = None
-        self.status_update_interval = 1.0  # Send status updates every second
+        self.monitor_interval = monitor_interval or self.DEFAULT_MONITOR_INTERVAL
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -66,33 +68,49 @@ class PrinterWorkerProcess:
     
     def _status_monitor_loop(self):
         """Monitor and send status updates"""
-        last_update = 0
         while self.running:
-            current_time = time.time()
-            if current_time - last_update >= self.status_update_interval:
-                try:
-                    if self.printer:
-                        status = self.printer.get_status()
-                        status_dict = status.model_dump()
-                        self.status_queue.put((self.printer_name, status_dict))
-                    else:
-                        # Send disconnected status
-                        printer_config_data = printer_config.get_printer_by_name(self.printer_name)
-                        display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
-                        
-                        default_status = models.PrinterStatus(
-                            status="disconnected",
-                            port=self.printer_port,
-                            name=self.printer_name,
-                            display_name=display_name,
-                            baud=0,
-                            progress=0
-                        )
-                        self.status_queue.put((self.printer_name, default_status.model_dump()))
-                    last_update = current_time
-                except Exception as e:
-                    self.logger.error(f"Error sending status update: {e}")
-            time.sleep(0.1)
+            try:
+                # Poll temperature if printer is connected
+                if self.printer and self.printer.online:
+                    try:
+                        self.printer.request_temperature_update()
+                    except Exception as e:
+                        self.logger.error(f"Error polling temperature: {e}")
+                
+                # Send status updates
+                self._send_status_update()
+                    
+            except Exception as e:
+                self.logger.error(f"Error in monitoring loop: {e}")
+            
+            time.sleep(self.monitor_interval)
+    
+    def _send_status_update(self):
+        """Send status update to the status queue"""
+        try:
+            if self.printer:
+                status = self.printer.get_status()
+                status_dict = status.model_dump()
+                self.status_queue.put((self.printer_name, status_dict))
+            else:
+                self._send_disconnected_status()
+        except Exception as e:
+            self.logger.error(f"Error sending status update: {e}")
+    
+    def _send_disconnected_status(self):
+        """Send disconnected status"""
+        printer_config_data = printer_config.get_printer_by_name(self.printer_name)
+        display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
+        
+        default_status = models.PrinterStatus(
+            status="disconnected",
+            port=self.printer_port,
+            name=self.printer_name,
+            display_name=display_name,
+            baud=0,
+            progress=0
+        )
+        self.status_queue.put((self.printer_name, default_status.model_dump()))
     
     def _process_connect(self, data: Optional[Dict[str, Any]]) -> WorkerResponse:
         """Connect to the printer"""
@@ -310,7 +328,11 @@ class PrinterWorkerProcess:
 def start_printer_worker(printer_name: str, printer_port: str, 
                          command_queue: multiprocessing.Queue,
                          response_queue: multiprocessing.Queue, 
-                         status_queue: multiprocessing.Queue):
+                         status_queue: multiprocessing.Queue,
+                         monitor_interval: float = None):
     """Entry point for starting a printer worker process"""
-    worker = PrinterWorkerProcess(printer_name, printer_port, command_queue, response_queue, status_queue)
+    worker = PrinterWorkerProcess(
+        printer_name, printer_port, command_queue, response_queue, status_queue,
+        monitor_interval=monitor_interval
+    )
     worker.run()
