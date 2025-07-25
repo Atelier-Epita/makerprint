@@ -20,6 +20,7 @@ services:
       - LOGPATH=/var/log/makerprint.log
       - LOGLEVEL=DEBUG
       - DEBUG=true
+      - DATABASE_PATH=/data/makerprint.db
     networks:
       - makerprint-net
 

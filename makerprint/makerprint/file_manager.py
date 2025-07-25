@@ -184,8 +184,8 @@ class FileManager:
 class PrintQueueManager:
     """Manages a print queue for all printers with SQLite persistence"""
     
-    def __init__(self, db_path: str = None):
-        self.db = SQLiteDatabase(db_path or "data/makerprint.db")
+    def __init__(self, db_path: str = "/data/makerprint.db"):
+        self.db = SQLiteDatabase(db_path)
         self._queue: List[models.QueueItem] = []
         self._load_queue()
     
@@ -302,4 +302,5 @@ class PrintQueueManager:
 
 # Global instances
 file_manager = FileManager()
-queue_manager = PrintQueueManager("data/makerprint.db")
+default_db_path = os.environ.get("DATABASE_PATH", "/data/makerprint.db")
+queue_manager = PrintQueueManager(default_db_path)
