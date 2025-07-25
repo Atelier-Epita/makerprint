@@ -299,6 +299,86 @@ class PrintQueueManager:
             all_tags.update(item.tags)
         return sorted(list(all_tags))
 
+    def update_queue_item_status(self, item_id: str, status: str, printer_name: str = None,
+                                started_at: str = None, finished_at: str = None,
+                                error_message: str = None) -> bool:
+        """Update the status of a queue item"""
+        # Update in memory
+        for item in self._queue:
+            if item.id == item_id:
+                item.status = status
+                if printer_name is not None:
+                    item.printer_name = printer_name
+                if started_at is not None:
+                    item.started_at = started_at
+                if finished_at is not None:
+                    item.finished_at = finished_at
+                if error_message is not None:
+                    item.error_message = error_message
+                break
+        else:
+            logger.warning(f"Queue item {item_id} not found for status update")
+            return False
+        
+        # Update in database
+        success = self.db.update_queue_item_status(item_id, status, printer_name, 
+                                                  started_at, finished_at, error_message)
+        if not success:
+            logger.error(f"Failed to update queue item {item_id} in database")
+        
+        return success
+
+    def get_queue_item_by_id(self, item_id: str) -> Optional[models.QueueItem]:
+        """Get a specific queue item by ID"""
+        for item in self._queue:
+            if item.id == item_id:
+                return item
+        return None
+
+    def get_next_todo_item(self, printer_name: str = None) -> Optional[models.QueueItem]:
+        """Get the next item in 'todo' status for printing"""
+        for item in self._queue:
+            if item.status == "todo":
+                return item
+        return None
+
+    def mark_print_started(self, item_id: str, printer_name: str) -> bool:
+        """Mark a queue item as started printing"""
+        return self.update_queue_item_status(
+            item_id, 
+            status="printing", 
+            printer_name=printer_name,
+            started_at=datetime.now().isoformat()
+        )
+
+    def mark_print_finished(self, item_id: str) -> bool:
+        """Mark a queue item as finished printing"""
+        return self.update_queue_item_status(
+            item_id,
+            status="finished",
+            finished_at=datetime.now().isoformat()
+        )
+
+    def mark_print_failed(self, item_id: str, error_message: str = None) -> bool:
+        """Mark a queue item as failed"""
+        return self.update_queue_item_status(
+            item_id,
+            status="failed",
+            finished_at=datetime.now().isoformat(),
+            error_message=error_message
+        )
+
+    def retry_queue_item(self, item_id: str) -> bool:
+        """Reset a finished or failed queue item back to todo status"""
+        return self.update_queue_item_status(
+            item_id,
+            status="todo",
+            printer_name=None,
+            started_at=None,
+            finished_at=None,
+            error_message=None
+        )
+
 
 # Global instances
 file_manager = FileManager()

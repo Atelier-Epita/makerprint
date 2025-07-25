@@ -103,7 +103,7 @@ class PrinterManager:
                 "progress": 0,
                 "timeElapsed": 0,
                 "timeRemaining": 0,
-                "currentFile": None,
+                "currentQueueItem": None,
                 "bedClear": False,
                 "bedTemp": {"current": 0, "target": 0},
                 "nozzleTemp": {"current": 0, "target": 0},
@@ -214,7 +214,7 @@ class PrinterManager:
             "progress": 0,
             "timeElapsed": 0,
             "timeRemaining": 0,
-            "currentFile": None,
+            "currentQueueItem": None,
             "bedClear": False,
             "bedTemp": {"current": 0, "target": 0},
             "nozzleTemp": {"current": 0, "target": 0},
@@ -253,21 +253,6 @@ class PrinterManager:
         command = WorkerCommand(action="command", data={"command": gcode_command})
         return self._send_command(printer_name, command)
     
-    def start_print(self, printer_name: str, filename: str) -> Optional[WorkerResponse]:
-        """Start printing a file"""
-        # try to start the worker if not already running
-        if not self._ensure_worker_running(printer_name):
-            return WorkerResponse(success=False, error="Failed to start printer worker")
-        
-        # if not connected, connect first
-        if self.get_printer_status(printer_name)["status"] != "connected":
-            connect_response = self.connect_printer(printer_name)
-            if not connect_response.success:
-                return connect_response
-
-        command = WorkerCommand(action="start", data={"filename": filename})
-        return self._send_command(printer_name, command)
-    
     def pause_print(self, printer_name: str) -> Optional[WorkerResponse]:
         """Pause printing"""
         command = WorkerCommand(action="pause")
@@ -286,6 +271,31 @@ class PrinterManager:
     def clear_bed(self, printer_name: str) -> Optional[WorkerResponse]:
         """Clear the bed"""
         command = WorkerCommand(action="clear_bed")
+        return self._send_command(printer_name, command)
+    
+    def start_print_from_queue(self, printer_name: str, queue_item_id: str) -> Optional[WorkerResponse]:
+        """Start printing from a queue item"""
+        # try to start the worker if not already running
+        if not self._ensure_worker_running(printer_name):
+            return WorkerResponse(success=False, error="Failed to start printer worker")
+        
+        # if not connected, connect first
+        if self.get_printer_status(printer_name)["status"] != "connected":
+            connect_response = self.connect_printer(printer_name)
+            if not connect_response.success:
+                return connect_response
+
+        command = WorkerCommand(action="start_queue_item", data={"queue_item_id": queue_item_id})
+        return self._send_command(printer_name, command)
+    
+    def mark_print_finished(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Mark the current print as finished"""
+        command = WorkerCommand(action="mark_finished")
+        return self._send_command(printer_name, command)
+    
+    def mark_print_failed(self, printer_name: str, error_message: str = None) -> Optional[WorkerResponse]:
+        """Mark the current print as failed"""
+        command = WorkerCommand(action="mark_failed", data={"error_message": error_message})
         return self._send_command(printer_name, command)
     
     def shutdown(self):

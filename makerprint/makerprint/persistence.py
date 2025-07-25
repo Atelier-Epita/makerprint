@@ -55,8 +55,8 @@ class SQLiteDatabase:
     def _init_database(self):
         """Initialize database schema"""
         with sqlite3.connect(self.db_path) as conn:
-            conn.executescript("""
-                -- Print queue table
+            # First, create the table with basic schema if it doesn't exist
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS print_queue (
                     id TEXT PRIMARY KEY,
                     file_path TEXT NOT NULL,
@@ -66,10 +66,30 @@ class SQLiteDatabase:
                     order_index INTEGER,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-                
-                -- Create indexes for better performance
-                CREATE INDEX IF NOT EXISTS idx_queue_order ON print_queue(order_index);
             """)
+            
+            # Check if new columns exist, add them if they don't
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(print_queue)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'status' not in columns:
+                conn.execute("ALTER TABLE print_queue ADD COLUMN status TEXT DEFAULT 'todo'")
+            if 'printer_name' not in columns:
+                conn.execute("ALTER TABLE print_queue ADD COLUMN printer_name TEXT")
+            if 'started_at' not in columns:
+                conn.execute("ALTER TABLE print_queue ADD COLUMN started_at TEXT")
+            if 'finished_at' not in columns:
+                conn.execute("ALTER TABLE print_queue ADD COLUMN finished_at TEXT")
+            if 'error_message' not in columns:
+                conn.execute("ALTER TABLE print_queue ADD COLUMN error_message TEXT")
+                
+            # Create indexes after ensuring columns exist
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_order ON print_queue(order_index)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_status ON print_queue(status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_printer ON print_queue(printer_name)")
+                
+            conn.commit()
     
     # Queue operations
     def save_queue(self, queue: List[models.QueueItem]) -> bool:
@@ -83,11 +103,14 @@ class SQLiteDatabase:
                 for i, item in enumerate(queue):
                     conn.execute("""
                         INSERT INTO print_queue 
-                        (id, file_path, file_name, added_at, tags, order_index)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        (id, file_path, file_name, added_at, tags, order_index, 
+                         status, printer_name, started_at, finished_at, error_message)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         item.id, item.file_path, item.file_name, 
-                        item.added_at, json.dumps(item.tags), i
+                        item.added_at, json.dumps(item.tags), i,
+                        item.status, item.printer_name, item.started_at,
+                        item.finished_at, item.error_message
                     ))
                 
                 conn.commit()
@@ -101,7 +124,8 @@ class SQLiteDatabase:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute("""
-                    SELECT id, file_path, file_name, added_at, tags
+                    SELECT id, file_path, file_name, added_at, tags,
+                           status, printer_name, started_at, finished_at, error_message
                     FROM print_queue 
                     ORDER BY order_index
                 """)
@@ -113,10 +137,64 @@ class SQLiteDatabase:
                         file_path=row[1],
                         file_name=row[2],
                         added_at=row[3],
-                        tags=json.loads(row[4])
+                        tags=json.loads(row[4]),
+                        status=row[5] or "todo",
+                        printer_name=row[6],
+                        started_at=row[7],
+                        finished_at=row[8],
+                        error_message=row[9]
                     ))
                 
                 return queue
         except Exception as e:
             logger.error(f"Failed to load queue from database: {e}")
             return []
+
+    def update_queue_item_status(self, item_id: str, status: str, printer_name: str = None, 
+                                started_at: str = None, finished_at: str = None, 
+                                error_message: str = None) -> bool:
+        """Update the status and related fields of a specific queue item"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE print_queue 
+                    SET status = ?, printer_name = ?, started_at = ?, 
+                        finished_at = ?, error_message = ?
+                    WHERE id = ?
+                """, (status, printer_name, started_at, finished_at, error_message, item_id))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Failed to update queue item {item_id}: {e}")
+            return False
+
+    def get_queue_item_by_id(self, item_id: str) -> models.QueueItem:
+        """Get a specific queue item by ID"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("""
+                    SELECT id, file_path, file_name, added_at, tags,
+                           status, printer_name, started_at, finished_at, error_message
+                    FROM print_queue 
+                    WHERE id = ?
+                """, (item_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return models.QueueItem(
+                        id=row[0],
+                        file_path=row[1],
+                        file_name=row[2],
+                        added_at=row[3],
+                        tags=json.loads(row[4]),
+                        status=row[5] or "todo",
+                        printer_name=row[6],
+                        started_at=row[7],
+                        finished_at=row[8],
+                        error_message=row[9]
+                    )
+                return None
+        except Exception as e:
+            logger.error(f"Failed to get queue item {item_id}: {e}")
+            return None

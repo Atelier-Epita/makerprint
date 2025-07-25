@@ -40,7 +40,10 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         clearQueue,
         applyTagFilter,
         clearTagFilter,
-        startPrint
+        startPrint,
+        markFinished,
+        markFailed,
+        retryItem
     } = usePrintQueue();
 
     // Custom handlers hook
@@ -165,6 +168,9 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     onClearQueue={clearQueue}
                     onApplyTagFilter={applyTagFilter}
                     onClearTagFilter={clearTagFilter}
+                    onMarkFinished={markFinished}
+                    onMarkFailed={markFailed}
+                    onRetryItem={retryItem}
                 />
 
                 <footer className="mt-12 mb-6 text-center">

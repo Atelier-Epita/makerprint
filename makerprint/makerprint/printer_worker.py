@@ -17,7 +17,7 @@ from .config import printer_config
 @dataclass
 class WorkerCommand:
     """Command to send to printer worker"""
-    action: str  # connect, disconnect, command, start, pause, resume, stop, status, clear_bed
+    action: str  # connect, disconnect, command, start, start_queue_item, pause, resume, stop, status, clear_bed, mark_finished, mark_failed
     data: Optional[Dict[str, Any]] = None
 
 
@@ -167,23 +167,31 @@ class PrinterWorkerProcess:
             self.logger.error(f"Failed to send command to {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
-    def _process_start(self, data: Dict[str, Any]) -> WorkerResponse:
-        """Start printing a file"""
+    def _process_start_queue_item(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Start printing from a queue item"""
         try:
             if not self.printer or not self.printer.online:
                 return WorkerResponse(success=False, error="Printer not connected")
             
-            filename = data.get("filename")
-            if not filename:
-                return WorkerResponse(success=False, error="Filename cannot be empty")
+            queue_item_id = data.get("queue_item_id")
+            if not queue_item_id:
+                return WorkerResponse(success=False, error="Queue item ID cannot be empty")
             
-            gcode = self.printer.prepare_gcode(filename)
+            from .file_manager import queue_manager
+            gcode = self.printer.prepare_gcode_from_queue_item(queue_item_id, queue_manager)
             self.printer.startprint(gcode)
             
             return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
         except Exception as e:
-            self.logger.error(f"Failed to start print on {self.printer_name}: {e}")
+            self.logger.error(f"Failed to start print from queue item on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+            self.printer.startprint(gcode)
+            
+            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start queue item print on {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
     def _process_pause(self) -> WorkerResponse:
@@ -238,6 +246,33 @@ class PrinterWorkerProcess:
             self.logger.error(f"Failed to clear bed on {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
+    def _process_mark_finished(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Mark the current print as finished"""
+        try:
+            if not self.printer:
+                return WorkerResponse(success=False, error="Printer not available")
+            
+            self.printer.mark_current_print_finished()
+            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
+            
+        except Exception as e:
+            self.logger.error(f"Failed to mark print as finished on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+    
+    def _process_mark_failed(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Mark the current print as failed"""
+        try:
+            if not self.printer:
+                return WorkerResponse(success=False, error="Printer not available")
+            
+            error_message = data.get("error_message", "Print failed")
+            self.printer.mark_current_print_failed(error_message)
+            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
+            
+        except Exception as e:
+            self.logger.error(f"Failed to mark print as failed on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+    
     def _process_status(self) -> WorkerResponse:
         """Get printer status"""
         try:
@@ -265,8 +300,8 @@ class PrinterWorkerProcess:
                 return self._process_disconnect()
             elif command.action == "command":
                 return self._process_command(command.data or {})
-            elif command.action == "start":
-                return self._process_start(command.data or {})
+            elif command.action == "start_queue_item":
+                return self._process_start_queue_item(command.data or {})
             elif command.action == "pause":
                 return self._process_pause()
             elif command.action == "resume":
@@ -275,6 +310,10 @@ class PrinterWorkerProcess:
                 return self._process_stop()
             elif command.action == "clear_bed":
                 return self._process_clear_bed()
+            elif command.action == "mark_finished":
+                return self._process_mark_finished(command.data or {})
+            elif command.action == "mark_failed":
+                return self._process_mark_failed(command.data or {})
             elif command.action == "status":
                 return self._process_status()
             else:

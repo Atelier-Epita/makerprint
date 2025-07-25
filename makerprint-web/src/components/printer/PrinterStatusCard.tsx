@@ -62,10 +62,10 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                                 <div className="w-8 h-8 flex items-center justify-center rounded-md bg-blue-100 text-blue-600 mr-3">
                                     <File className="h-4 w-4" />
                                 </div>
-                                <span className="text-sm font-medium text-muted-foreground">File</span>
+                                <span className="text-sm font-medium text-muted-foreground">Queue Item</span>
                             </div>
                             <span className="text-sm font-semibold truncate max-w-[200px]">
-                                {printer.currentFile || 'No file selected'}
+                                {printer.currentQueueItem || 'No item selected'}
                             </span>
                         </div>
 

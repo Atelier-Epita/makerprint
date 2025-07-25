@@ -24,6 +24,9 @@ interface FilesAndQueueTabsProps {
     onClearQueue: any;
     onApplyTagFilter: any;
     onClearTagFilter: any;
+    onMarkFinished?: (queueItemId: string) => Promise<void>;
+    onMarkFailed?: (queueItemId: string) => Promise<void>;
+    onRetryItem?: (queueItemId: string) => Promise<void>;
 }
 
 const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
@@ -45,7 +48,10 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
     onReorderQueue,
     onClearQueue,
     onApplyTagFilter,
-    onClearTagFilter
+    onClearTagFilter,
+    onMarkFinished,
+    onMarkFailed,
+    onRetryItem
 }) => {
     return (
         <Card className="mt-6 printer-card group border-0 shadow-md hover:shadow-xl transition-all duration-300">
@@ -84,6 +90,9 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
                             onClearQueue={onClearQueue}
                             onApplyTagFilter={onApplyTagFilter}
                             onClearTagFilter={onClearTagFilter}
+                            onMarkFinished={onMarkFinished}
+                            onMarkFailed={onMarkFailed}
+                            onRetryItem={onRetryItem}
                             loading={queueLoading}
                         />
                     </TabsContent>

@@ -20,6 +20,11 @@ interface QueueItem {
     file_path: string;
     added_at: string;
     tags: string[];
+    status: string;  // todo, printing, finished, failed
+    printer_name?: string;
+    started_at?: string;
+    finished_at?: string;
+    error_message?: string;
 }
 
 interface PrintQueueProps {
@@ -34,6 +39,9 @@ interface PrintQueueProps {
     onClearQueue?: (tagFilter?: string[]) => Promise<void>;
     onApplyTagFilter: (tags: string[]) => Promise<void>;
     onClearTagFilter: () => Promise<void>;
+    onMarkFinished?: (queueId: string) => Promise<void>;
+    onMarkFailed?: (queueId: string) => Promise<void>;
+    onRetryItem?: (queueId: string) => Promise<void>;
     loading?: boolean;
 }
 
@@ -47,6 +55,9 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
     onClearQueue,
     onApplyTagFilter,
     onClearTagFilter,
+    onMarkFinished,
+    onMarkFailed,
+    onRetryItem,
     loading = false
 }) => {
     const formatDate = (dateString: string) => {
@@ -93,6 +104,36 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
             newSelectedTags = [...activeTagFilter, tag];
         }
         await onApplyTagFilter(newSelectedTags);
+    };
+
+    const handleRetryItem = async (queueId: string) => {
+        if (onRetryItem) {
+            try {
+                await onRetryItem(queueId);
+            } catch (error) {
+                console.error('Failed to retry item:', error);
+            }
+        }
+    };
+
+    const handleMarkFinished = async (queueId: string) => {
+        if (onMarkFinished) {
+            try {
+                await onMarkFinished(queueId);
+            } catch (error) {
+                console.error('Failed to mark as finished:', error);
+            }
+        }
+    };
+
+    const handleMarkFailed = async (queueId: string) => {
+        if (onMarkFailed) {
+            try {
+                await onMarkFailed(queueId);
+            } catch (error) {
+                console.error('Failed to mark as failed:', error);
+            }
+        }
     };
 
     if (loading) {
@@ -183,9 +224,22 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                         <div className="flex-1 min-w-0">
                                             <span className="font-medium text-sm break-words">{item.file_name}</span>
                                         </div>
-                                        <Badge variant="secondary" className="shrink-0 ml-2">
-                                            #{index + 1}
-                                        </Badge>
+                                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                                            <Badge 
+                                                variant={
+                                                    item.status === 'todo' ? 'outline' :
+                                                    item.status === 'printing' ? 'default' :
+                                                    item.status === 'finished' ? 'secondary' :
+                                                    'destructive'
+                                                }
+                                                className="text-xs"
+                                            >
+                                                {item.status}
+                                            </Badge>
+                                            <Badge variant="secondary" className="text-xs">
+                                                #{index + 1}
+                                            </Badge>
+                                        </div>
                                     </div>
                                     
                                     {item.tags.length > 0 && (
@@ -199,9 +253,31 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                         </div>
                                     )}
                                     
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        Added: {formatDate(item.added_at)}
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                        <div className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            Added: {formatDate(item.added_at)}
+                                        </div>
+                                        {item.printer_name && (
+                                            <div className="flex items-center gap-1">
+                                                <span>Printer: {item.printer_name}</span>
+                                            </div>
+                                        )}
+                                        {item.started_at && (
+                                            <div className="flex items-center gap-1">
+                                                <span>Started: {formatDate(item.started_at)}</span>
+                                            </div>
+                                        )}
+                                        {item.finished_at && (
+                                            <div className="flex items-center gap-1">
+                                                <span>Finished: {formatDate(item.finished_at)}</span>
+                                            </div>
+                                        )}
+                                        {item.error_message && (
+                                            <div className="flex items-center gap-1 text-red-600">
+                                                <span>Error: {item.error_message}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -233,8 +309,8 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                     )}
 
                                     <div className="flex gap-0.5 sm:gap-1">
-                                        {/* Print action buttons */}
-                                        {onStartPrint && (
+                                        {/* Print action buttons - only show for 'todo' items */}
+                                        {onStartPrint && item.status === 'todo' && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -247,16 +323,56 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                             </Button>
                                         )}
 
-                                        {/* Remove button */}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemoveFromQueue(item.id)}
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
-                                            title="Remove from queue"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                                        {/* Retry button - show for 'failed' items */}
+                                        {item.status === 'failed' && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleRetryItem(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-orange-600 hover:text-orange-700"
+                                                title="Retry print"
+                                            >
+                                                <Play className="h-4 w-4 mr-1" />
+                                                Retry
+                                            </Button>
+                                        )}
+
+                                        {/* Status action buttons for 'printing' items */}
+                                        {item.status === 'printing' && (
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleMarkFinished(item.id)}
+                                                    className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
+                                                    title="Mark as finished"
+                                                >
+                                                    ✓ Finished
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleMarkFailed(item.id)}
+                                                    className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
+                                                    title="Mark as failed"
+                                                >
+                                                    ✗ Failed
+                                                </Button>
+                                            </>
+                                        )}
+
+                                        {/* Remove button - only for non-printing items */}
+                                        {item.status !== 'printing' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveFromQueue(item.id)}
+                                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
+                                                title="Remove from queue"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

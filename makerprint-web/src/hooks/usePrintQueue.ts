@@ -5,7 +5,10 @@ import {
     addToQueue,
     removeFromQueue,
     reorderQueue,
-    clearQueue
+    clearQueue,
+    markQueueItemFinished,
+    markQueueItemFailed,
+    retryQueueItem
 } from '@/api/files';
 import { startPrinter } from '@/api/printers';
 
@@ -15,6 +18,11 @@ interface QueueItem {
     file_path: string;
     added_at: string;
     tags: string[];
+    status: string;  // todo, printing, finished, failed
+    printer_name?: string;
+    started_at?: string;
+    finished_at?: string;
+    error_message?: string;
 }
 
 export function usePrintQueue() {
@@ -159,6 +167,39 @@ export function usePrintQueue() {
         }
     };
 
+    const markItemFinished = async (queueItemId: string) => {
+        try {
+            await markQueueItemFinished(queueItemId);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to mark item as finished');
+            throw err;
+        }
+    };
+
+    const markItemFailed = async (queueItemId: string, errorMessage?: string) => {
+        try {
+            await markQueueItemFailed(queueItemId, errorMessage);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to mark item as failed');
+            throw err;
+        }
+    };
+
+    const retryItem = async (queueItemId: string) => {
+        try {
+            await retryQueueItem(queueItemId);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to retry item');
+            throw err;
+        }
+    };
+
     useEffect(() => {
         loadQueue();
         loadTags();
@@ -177,6 +218,9 @@ export function usePrintQueue() {
         applyTagFilter,
         clearTagFilter,
         startPrint,
+        markFinished: markItemFinished,
+        markFailed: markItemFailed,
+        retryItem,
         refreshQueue: () => loadQueue(),
         refreshTags: loadTags
     };
