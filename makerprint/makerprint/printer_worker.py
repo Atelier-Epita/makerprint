@@ -226,6 +226,10 @@ class PrinterWorkerProcess:
             if not self.printer or not self.printer.online:
                 return WorkerResponse(success=False, error="Printer not connected")
             
+            # Mark current print as failed if there's a queue item being printed
+            if self.printer.current_queue_item_id:
+                self.printer.mark_current_print_failed("Print stopped by user")
+            
             self.printer.cancelprint()
             return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             

@@ -8,6 +8,7 @@ import {
     clearQueue,
     markQueueItemFinished,
     markQueueItemFailed,
+    markQueueItemSuccessful,
     retryQueueItem
 } from '@/api/files';
 import { startPrinter } from '@/api/printers';
@@ -152,7 +153,7 @@ export function usePrintQueue() {
 
             if (printerName) {
                 console.log(`Starting print for queue item: ${queueItemId} on printer: ${printerName}`);
-                await startPrinter(printerName, queueItem.file_path);
+                await startPrinter(printerName, queueItemId);
 
                 // TODO: only remove when print is marked as "finished" + the print is successfull
                 // await removeFromQueue(queueItemId);
@@ -189,6 +190,17 @@ export function usePrintQueue() {
         }
     };
 
+    const markItemSuccessful = async (queueItemId: string) => {
+        try {
+            await markQueueItemSuccessful(queueItemId);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to mark item as successful');
+            throw err;
+        }
+    };
+
     const retryItem = async (queueItemId: string) => {
         try {
             await retryQueueItem(queueItemId);
@@ -220,6 +232,7 @@ export function usePrintQueue() {
         startPrint,
         markFinished: markItemFinished,
         markFailed: markItemFailed,
+        markSuccessful: markItemSuccessful,
         retryItem,
         refreshQueue: () => loadQueue(),
         refreshTags: loadTags

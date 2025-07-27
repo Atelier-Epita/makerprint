@@ -43,6 +43,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         startPrint,
         markFinished,
         markFailed,
+        markSuccessful,
         retryItem
     } = usePrintQueue();
 
@@ -170,6 +171,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     onClearTagFilter={clearTagFilter}
                     onMarkFinished={markFinished}
                     onMarkFailed={markFailed}
+                    onMarkSuccessful={markSuccessful}
                     onRetryItem={retryItem}
                 />
 

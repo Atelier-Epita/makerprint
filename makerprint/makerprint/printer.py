@@ -2,6 +2,7 @@ import os
 import threading
 import time
 import asyncio
+from datetime import datetime
 
 from printrun.printcore import printcore
 from printrun import gcoder
@@ -85,7 +86,12 @@ class Printer(printcore):
             # Handle queue status update if this was a queue-based print
             if self.current_queue_item_id:
                 from .file_manager import queue_manager
-                # Don't automatically mark as finished - wait for human validation
+                # Mark as completed waiting for human validation
+                queue_manager.update_queue_item_status(
+                    self.current_queue_item_id, 
+                    status="completed",
+                    finished_at=datetime.now().isoformat()
+                )
                 logger.info(f"Print completed on {self.name}. Queue item {self.current_queue_item_id} ready for validation.")
             
             # Log the completion

@@ -41,6 +41,7 @@ interface PrintQueueProps {
     onClearTagFilter: () => Promise<void>;
     onMarkFinished?: (queueId: string) => Promise<void>;
     onMarkFailed?: (queueId: string) => Promise<void>;
+    onMarkSuccessful?: (queueId: string) => Promise<void>;
     onRetryItem?: (queueId: string) => Promise<void>;
     loading?: boolean;
 }
@@ -57,6 +58,7 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
     onClearTagFilter,
     onMarkFinished,
     onMarkFailed,
+    onMarkSuccessful,
     onRetryItem,
     loading = false
 }) => {
@@ -132,6 +134,16 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                 await onMarkFailed(queueId);
             } catch (error) {
                 console.error('Failed to mark as failed:', error);
+            }
+        }
+    };
+
+    const handleMarkSuccessful = async (queueId: string) => {
+        if (onMarkSuccessful) {
+            try {
+                await onMarkSuccessful(queueId);
+            } catch (error) {
+                console.error('Failed to mark as successful:', error);
             }
         }
     };
@@ -229,10 +241,15 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                 variant={
                                                     item.status === 'todo' ? 'outline' :
                                                     item.status === 'printing' ? 'default' :
+                                                    item.status === 'completed' ? 'secondary' :
                                                     item.status === 'finished' ? 'secondary' :
                                                     'destructive'
                                                 }
-                                                className="text-xs"
+                                                className={`text-xs ${
+                                                    item.status === 'completed' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                                    item.status === 'finished' ? 'bg-green-100 text-green-800 border-green-300' :
+                                                    ''
+                                                }`}
                                             >
                                                 {item.status}
                                             </Badge>
@@ -309,8 +326,8 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                     )}
 
                                     <div className="flex gap-0.5 sm:gap-1">
-                                        {/* Print action buttons - only show for 'todo' items */}
-                                        {onStartPrint && item.status === 'todo' && (
+                                        {/* Status action buttons based on item status */}
+                                        {item.status === 'todo' && onStartPrint && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -323,31 +340,17 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                             </Button>
                                         )}
 
-                                        {/* Retry button - show for 'failed' items */}
-                                        {item.status === 'failed' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleRetryItem(item.id)}
-                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-orange-600 hover:text-orange-700"
-                                                title="Retry print"
-                                            >
-                                                <Play className="h-4 w-4 mr-1" />
-                                                Retry
-                                            </Button>
-                                        )}
-
-                                        {/* Status action buttons for 'printing' items */}
-                                        {item.status === 'printing' && (
+                                        {/* Completed items need validation */}
+                                        {item.status === 'completed' && (
                                             <>
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => handleMarkFinished(item.id)}
+                                                    onClick={() => handleMarkSuccessful(item.id)}
                                                     className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
-                                                    title="Mark as finished"
+                                                    title="Mark as successful and remove"
                                                 >
-                                                    ✓ Finished
+                                                    ✓ Success
                                                 </Button>
                                                 <Button
                                                     variant="outline"
@@ -359,6 +362,46 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                     ✗ Failed
                                                 </Button>
                                             </>
+                                        )}
+
+                                        {/* Printing items can be manually marked */}
+                                        {item.status === 'printing' && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleMarkFailed(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
+                                                title="Mark as failed"
+                                            >
+                                                ✗ Failed
+                                            </Button>
+                                        )}
+
+                                        {/* Finished items can be marked successful */}
+                                        {item.status === 'finished' && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleMarkSuccessful(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
+                                                title="Mark as successful and remove"
+                                            >
+                                                ✓ Success
+                                            </Button>
+                                        )}
+
+                                        {/* Failed items can be retried */}
+                                        {item.status === 'failed' && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleRetryItem(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-orange-600 hover:text-orange-700"
+                                                title="Retry print"
+                                            >
+                                                <Play className="h-4 w-4 mr-1" />
+                                                Retry
+                                            </Button>
                                         )}
 
                                         {/* Remove button - only for non-printing items */}

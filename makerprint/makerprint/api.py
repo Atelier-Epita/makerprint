@@ -364,6 +364,24 @@ async def mark_queue_item_failed(queue_item_id: str, data: dict = Body(default={
     return {"success": True}
 
 
+@app.post("/queue/{queue_item_id}/mark_successful/")
+async def mark_queue_item_successful(queue_item_id: str):
+    """Mark a queue item as successful and remove it from the queue"""
+    # First mark as finished if not already
+    queue_item = queue_manager.get_queue_item_by_id(queue_item_id)
+    if not queue_item:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    
+    if queue_item.status == "printing":
+        queue_manager.mark_print_finished(queue_item_id)
+    
+    # Then remove from queue
+    success = queue_manager.remove_from_queue(queue_item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    return {"success": True}
+
+
 @app.get("/queue/{queue_item_id}/", response_model=models.QueueItem)
 async def get_queue_item(queue_item_id: str):
     """Get details of a specific queue item"""

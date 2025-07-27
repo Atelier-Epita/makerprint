@@ -53,7 +53,7 @@ class QueueItem(pydantic.BaseModel):
     file_name: str
     added_at: str  # ISO datetime string
     tags: list[str] = []  # tags for filtering
-    status: str = "todo"  # todo, printing, finished, failed
+    status: str = "todo"  # todo, printing, completed, finished, failed
     printer_name: Optional[str] = None  # Which printer is handling this item
     started_at: Optional[str] = None  # When printing started
     finished_at: Optional[str] = None  # When printing finished

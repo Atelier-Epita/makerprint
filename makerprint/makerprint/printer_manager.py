@@ -280,9 +280,10 @@ class PrinterManager:
             return WorkerResponse(success=False, error="Failed to start printer worker")
         
         # if not connected, connect first
-        if self.get_printer_status(printer_name)["status"] != "connected":
+        status = self.get_printer_status(printer_name)["status"]
+        if status not in ["idle", "printing", "paused"]:
             connect_response = self.connect_printer(printer_name)
-            if not connect_response.success:
+            if not connect_response or not connect_response.success:
                 return connect_response
 
         command = WorkerCommand(action="start_queue_item", data={"queue_item_id": queue_item_id})

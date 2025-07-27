@@ -235,6 +235,9 @@ class PrintQueueManager:
     
     def get_queue(self, tag_filter: List[str] = None) -> List[models.QueueItem]:
         """Get the queue, optionally filtered by tags"""
+        # Reload from database to ensure we have the latest state
+        self._load_queue()
+        
         if not tag_filter:
             return self._queue.copy()
         
@@ -330,6 +333,8 @@ class PrintQueueManager:
 
     def get_queue_item_by_id(self, item_id: str) -> Optional[models.QueueItem]:
         """Get a specific queue item by ID"""
+        self._load_queue()
+
         for item in self._queue:
             if item.id == item_id:
                 return item

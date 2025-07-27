@@ -26,6 +26,7 @@ interface FilesAndQueueTabsProps {
     onClearTagFilter: any;
     onMarkFinished?: (queueItemId: string) => Promise<void>;
     onMarkFailed?: (queueItemId: string) => Promise<void>;
+    onMarkSuccessful?: (queueItemId: string) => Promise<void>;
     onRetryItem?: (queueItemId: string) => Promise<void>;
 }
 
@@ -51,6 +52,7 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
     onClearTagFilter,
     onMarkFinished,
     onMarkFailed,
+    onMarkSuccessful,
     onRetryItem
 }) => {
     return (
@@ -92,6 +94,7 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
                             onClearTagFilter={onClearTagFilter}
                             onMarkFinished={onMarkFinished}
                             onMarkFailed={onMarkFailed}
+                            onMarkSuccessful={onMarkSuccessful}
                             onRetryItem={onRetryItem}
                             loading={queueLoading}
                         />

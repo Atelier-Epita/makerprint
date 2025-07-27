@@ -78,6 +78,10 @@ export const markQueueItemFailed = (queueItemId, errorMessage = null) => {
     return axios.post(`${API_URL}/queue/${queueItemId}/mark_failed/`, data);
 };
 
+export const markQueueItemSuccessful = (queueItemId) => {
+    return axios.post(`${API_URL}/queue/${queueItemId}/mark_successful/`);
+};
+
 export const retryQueueItem = (queueItemId) => {
     return axios.post(`${API_URL}/queue/${queueItemId}/retry/`);
 };
