@@ -49,9 +49,11 @@ class FileManager:
         if directory.is_dir():
             try:
                 for child in sorted(directory.iterdir()):
-                    if child.name.startswith('.') or not child.name.endswith('.gcode'):
-                        continue  # skip non gcode file and hidden files
-                    node.children.append(self._build_file_tree(child))
+                    if child.name.startswith('.'):
+                        continue  # skip hidden files
+                    # Include directories or gcode files
+                    if child.is_dir() or child.name.endswith('.gcode'):
+                        node.children.append(self._build_file_tree(child))
             except PermissionError:
                 logger.warning(f"Permission denied accessing {directory}")
                 

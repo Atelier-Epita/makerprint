@@ -32,6 +32,7 @@ export interface Printer {
     target: number;
   };
   currentQueueItem?: string;
+  currentQueueItemName?: string;
   progress?: number;
   layerHeight?: number;
   timeRemaining?: number;

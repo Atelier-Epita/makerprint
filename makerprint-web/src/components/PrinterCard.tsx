@@ -86,15 +86,15 @@ const PrinterCard: React.FC<PrinterCardProps> = ({ printer }) => {
             </span>
           </div>
           
-          {printer.currentQueueItem && (
+          {(printer.currentQueueItem || printer.currentQueueItemName) && (
             <>
               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                 <div className="flex items-center">
                   <File className="mr-2 h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium text-muted-foreground">Queue Item</span>
+                  <span className="text-sm font-medium text-muted-foreground">File Name</span>
                 </div>
                 <span className="text-sm font-semibold truncate max-w-[150px]">
-                  {printer.currentQueueItem}
+                  {printer.currentQueueItemName || printer.currentQueueItem}
                 </span>
               </div>
               

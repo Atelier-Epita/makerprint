@@ -24,6 +24,7 @@ class PrinterStatus(pydantic.BaseModel):
     timeElapsed: NUMBER = 0  # in seconds
     timeRemaining: NUMBER = 0 # in seconds
     currentQueueItem: Optional[str] = None  # Queue item ID currently being printed
+    currentQueueItemName: Optional[str] = None  # Queue item file name currently being printed
     bedClear: bool = False
     bedTemp: Optional[BedTemp] = BedTemp(current=0, target=0)
     nozzleTemp: Optional[NozzleTemp] = NozzleTemp(current=0, target=0)

@@ -30,6 +30,7 @@ class Printer(printcore):
         self.name = printer_name if printer_name else self.port
         self.display_name = display_name
         self.current_queue_item_id = None  # ID of the queue item being printed
+        self.current_queue_item_name = None  # Name of the queue item being printed
         self.start_time = time.time() # meh just want to have a default value
         self.total_paused_duration = 0
         self.pause_start_time = None
@@ -62,6 +63,7 @@ class Printer(printcore):
             )
 
         self.current_queue_item_id = queue_item_id
+        self.current_queue_item_name = queue_item.file_name
         
         # Mark the item as being printed
         qm.mark_print_started(queue_item_id, self.name)
@@ -109,6 +111,7 @@ class Printer(printcore):
     def _reset_print_timing(self):
         self.start_time = None
         self.current_queue_item_id = None
+        self.current_queue_item_name = None
         self.total_paused_duration = 0
         self.pause_start_time = None
 
@@ -176,6 +179,7 @@ class Printer(printcore):
             timeElapsed=elapsed_time,
             timeRemaining=time_remaining,
             currentQueueItem=self.current_queue_item_id,
+            currentQueueItemName=self.current_queue_item_name,
             bedClear=self.bed_clear,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target
