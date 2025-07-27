@@ -6,7 +6,6 @@ import {
     removeFromQueue,
     reorderQueue,
     clearQueue,
-    markQueueItemFinished,
     markQueueItemFailed,
     markQueueItemSuccessful,
     retryQueueItem
@@ -168,17 +167,6 @@ export function usePrintQueue() {
         }
     };
 
-    const markItemFinished = async (queueItemId: string) => {
-        try {
-            await markQueueItemFinished(queueItemId);
-            await loadQueue();
-            setError(null);
-        } catch (err: any) {
-            setError(err.message || 'Failed to mark item as finished');
-            throw err;
-        }
-    };
-
     const markItemFailed = async (queueItemId: string, errorMessage?: string) => {
         try {
             await markQueueItemFailed(queueItemId, errorMessage);
@@ -230,7 +218,6 @@ export function usePrintQueue() {
         applyTagFilter,
         clearTagFilter,
         startPrint,
-        markFinished: markItemFinished,
         markFailed: markItemFailed,
         markSuccessful: markItemSuccessful,
         retryItem,

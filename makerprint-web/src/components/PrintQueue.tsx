@@ -39,7 +39,6 @@ interface PrintQueueProps {
     onClearQueue?: (tagFilter?: string[]) => Promise<void>;
     onApplyTagFilter: (tags: string[]) => Promise<void>;
     onClearTagFilter: () => Promise<void>;
-    onMarkFinished?: (queueId: string) => Promise<void>;
     onMarkFailed?: (queueId: string) => Promise<void>;
     onMarkSuccessful?: (queueId: string) => Promise<void>;
     onRetryItem?: (queueId: string) => Promise<void>;
@@ -56,7 +55,6 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
     onClearQueue,
     onApplyTagFilter,
     onClearTagFilter,
-    onMarkFinished,
     onMarkFailed,
     onMarkSuccessful,
     onRetryItem,
@@ -114,16 +112,6 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                 await onRetryItem(queueId);
             } catch (error) {
                 console.error('Failed to retry item:', error);
-            }
-        }
-    };
-
-    const handleMarkFinished = async (queueId: string) => {
-        if (onMarkFinished) {
-            try {
-                await onMarkFinished(queueId);
-            } catch (error) {
-                console.error('Failed to mark as finished:', error);
             }
         }
     };

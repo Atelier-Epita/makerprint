@@ -49,8 +49,8 @@ class FileManager:
         if directory.is_dir():
             try:
                 for child in sorted(directory.iterdir()):
-                    if child.name.startswith('.'):
-                        continue  # Skip hidden files
+                    if child.name.startswith('.') or not child.name.endswith('.gcode'):
+                        continue  # skip non gcode file and hidden files
                     node.children.append(self._build_file_tree(child))
             except PermissionError:
                 logger.warning(f"Permission denied accessing {directory}")
@@ -249,11 +249,6 @@ class PrintQueueManager:
         
         return filtered_queue
     
-    def get_next_file(self, tag_filter: List[str] = None) -> Optional[models.QueueItem]:
-        """Get the next file in the queue, optionally filtered by tags"""
-        queue = self.get_queue(tag_filter)
-        return queue[0] if queue else None
-    
     def clear_queue(self, tag_filter: List[str] = None) -> bool:
         """Clear all items from the queue, optionally filtered by tags"""
         if not tag_filter:
@@ -337,13 +332,6 @@ class PrintQueueManager:
 
         for item in self._queue:
             if item.id == item_id:
-                return item
-        return None
-
-    def get_next_todo_item(self, printer_name: str = None) -> Optional[models.QueueItem]:
-        """Get the next item in 'todo' status for printing"""
-        for item in self._queue:
-            if item.status == "todo":
                 return item
         return None
 

@@ -69,10 +69,6 @@ export const clearQueue = (tags = null) => {
     return axios.delete(`${API_URL}/queue/`, { params });
 };
 
-export const markQueueItemFinished = (queueItemId) => {
-    return axios.post(`${API_URL}/queue/${queueItemId}/mark_finished/`);
-};
-
 export const markQueueItemFailed = (queueItemId, errorMessage = null) => {
     const data = errorMessage ? { error_message: errorMessage } : {};
     return axios.post(`${API_URL}/queue/${queueItemId}/mark_failed/`, data);
