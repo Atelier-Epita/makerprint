@@ -91,7 +91,6 @@ class SQLiteDatabase:
                 
             conn.commit()
     
-    # Queue operations
     def save_queue(self, queue: List[models.QueueItem]) -> bool:
         """Save entire queue to database"""
         try:

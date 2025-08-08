@@ -7,7 +7,7 @@ import uuid
 
 from . import models, utils
 from .utils import logger
-from .persistence import SQLiteDatabase
+from .database import SQLiteDatabase
 
 
 class FileManager:
