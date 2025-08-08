@@ -202,12 +202,13 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
             </CardHeader>
             <CardContent>
                 {queue.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <File className="h-12 w-12 mx-auto mb-4" />
-                        <p className="text-sm">
+                    <div className="text-center py-12 text-gray-500">
+                        <File className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">Print Queue is Empty</h3>
+                        <p className="text-sm mb-4">
                             {activeTagFilter.length > 0 
                                 ? `No items found with tags: ${activeTagFilter.join(', ')}`
-                                : 'No items in queue'
+                                : 'Add files to the queue to start printing'
                             }
                         </p>
                     </div>

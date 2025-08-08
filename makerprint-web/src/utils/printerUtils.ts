@@ -25,10 +25,7 @@ export const getStatusText = (status: string) => {
     }
 };
 
-export const getButtonVariant = (buttonType: 'start' | 'pause' | 'stop' | 'connect', status: string) => {
-    if (buttonType === 'start' && status === 'idle') {
-        return 'default';
-    }
+export const getButtonVariant = (buttonType: 'pause' | 'stop' | 'connect', status: string) => {
     if (buttonType === 'pause' && (status === 'printing' || status === 'paused')) {
         return 'default';
     }

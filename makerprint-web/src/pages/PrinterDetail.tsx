@@ -8,7 +8,6 @@ import { Button } from '../components/ui/button';
 import PrinterHeader from '../components/printer/PrinterHeader';
 import PrinterStatusCard from '../components/printer/PrinterStatusCard';
 import MovementControls from '../components/printer/MovementControls';
-import SelectedFileCard from '../components/printer/SelectedFileCard';
 import FilesAndQueueTabs from '../components/printer/FilesAndQueueTabs';
 import { getStatusColor, getStatusBadgeClass, getStatusText, getButtonVariant } from '../utils/printerUtils';
 
@@ -48,13 +47,10 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
 
     // Custom handlers hook
     const {
-        selectedFile,
-        setSelectedFile,
         command,
         setCommand,
-        handleFileSelect,
         handleAddToQueue,
-        handleAddSelectedToQueue,
+        handlePrintNow,
         handleMovement,
         handleHome,
         handleCommandSubmit,
@@ -69,7 +65,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
     // Helper functions
     const isMovementDisabled = printer?.status === 'printing' || printer?.status === 'disconnected';
 
-    const getButtonVariantWithStatus = (buttonType: 'start' | 'pause' | 'stop' | 'connect') => 
+    const getButtonVariantWithStatus = (buttonType: 'pause' | 'stop' | 'connect') => 
         getButtonVariant(buttonType, printer?.status || '');
 
     // Error handling
@@ -114,12 +110,10 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     {/* Status Card - Left 2/3 */}
                     <PrinterStatusCard
                         printer={printer}
-                        selectedFile={selectedFile}
                         getStatusBadgeClass={getStatusBadgeClass}
                         getStatusColor={getStatusColor}
                         getStatusText={getStatusText}
                         getButtonVariant={getButtonVariantWithStatus}
-                        onStart={handleStart}
                         onPauseOrResume={handlePauseOrResume}
                         onStop={handleStop}
                         onConnect={handleConnect}
@@ -138,15 +132,6 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     />
                 </div>
 
-                {/* File Selection Card */}
-                {selectedFile && (
-                    <SelectedFileCard
-                        selectedFile={selectedFile}
-                        onCancel={() => setSelectedFile(null)}
-                        onAddToQueue={handleAddSelectedToQueue}
-                    />
-                )}
-
                 {/* Files and Queue Tabs */}
                 <FilesAndQueueTabs
                     fileTree={fileTree}
@@ -155,13 +140,13 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     activeTagFilter={activeTagFilter}
                     filesLoading={filesLoading}
                     queueLoading={queueLoading}
-                    onFileSelect={handleFileSelect}
                     onUpload={uploadFiles}
                     onCreateFolder={createFolder}
                     onDelete={deleteItem}
                     onRename={renameItem}
                     onMove={moveItem}
                     onAddToQueue={handleAddToQueue}
+                    onPrintNow={handlePrintNow}
                     onStartPrint={handleStartPrint}
                     onRemoveFromQueue={removeFromQueue}
                     onReorderQueue={reorderQueue}

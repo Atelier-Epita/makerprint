@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import FileExplorer from '../FileExplorer';
 import PrintQueue from '../PrintQueue';
@@ -11,13 +12,13 @@ interface FilesAndQueueTabsProps {
     activeTagFilter: any;
     filesLoading: boolean;
     queueLoading: boolean;
-    onFileSelect: (filePath: string) => void;
     onUpload: any;
     onCreateFolder: any;
     onDelete: any;
     onRename: any;
     onMove: any;
     onAddToQueue: (filePath: string) => void;
+    onPrintNow?: (filePath: string) => void;
     onStartPrint: (queueItemId: string) => Promise<void>;
     onRemoveFromQueue: any;
     onReorderQueue: any;
@@ -36,13 +37,13 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
     activeTagFilter,
     filesLoading,
     queueLoading,
-    onFileSelect,
     onUpload,
     onCreateFolder,
     onDelete,
     onRename,
     onMove,
     onAddToQueue,
+    onPrintNow,
     onStartPrint,
     onRemoveFromQueue,
     onReorderQueue,
@@ -56,28 +57,14 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
     return (
         <Card className="mt-6 printer-card group border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardHeader className="pb-2">
-                <CardTitle>Files & Print Queue</CardTitle>
+                <CardTitle>Print Management</CardTitle>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="files" className="space-y-4">
+                <Tabs defaultValue="queue" className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="files">File Explorer</TabsTrigger>
                         <TabsTrigger value="queue">Print Queue</TabsTrigger>
+                        <TabsTrigger value="files">File Explorer</TabsTrigger>
                     </TabsList>
-
-                    <TabsContent value="files" className="space-y-4">
-                        <FileExplorer
-                            fileTree={fileTree}
-                            onFileSelect={onFileSelect}
-                            onUpload={onUpload}
-                            onCreateFolder={onCreateFolder}
-                            onDelete={onDelete}
-                            onRename={onRename}
-                            onMove={onMove}
-                            onAddToQueue={onAddToQueue}
-                            loading={filesLoading}
-                        />
-                    </TabsContent>
 
                     <TabsContent value="queue" className="space-y-4">
                         <PrintQueue
@@ -94,6 +81,20 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
                             onMarkSuccessful={onMarkSuccessful}
                             onRetryItem={onRetryItem}
                             loading={queueLoading}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="files" className="space-y-4">
+                        <FileExplorer
+                            fileTree={fileTree}
+                            onUpload={onUpload}
+                            onCreateFolder={onCreateFolder}
+                            onDelete={onDelete}
+                            onRename={onRename}
+                            onMove={onMove}
+                            onAddToQueue={onAddToQueue}
+                            onPrintNow={onPrintNow}
+                            loading={filesLoading}
                         />
                     </TabsContent>
                 </Tabs>

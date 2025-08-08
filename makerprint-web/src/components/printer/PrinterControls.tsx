@@ -1,22 +1,18 @@
 import React from 'react';
 import { Button } from '../ui/button';
-import { Play, Pause, CircleStop, Plug } from 'lucide-react';
+import { Pause, CircleStop, Plug, Play } from 'lucide-react';
 
 interface PrinterControlsProps {
     printer: any;
-    selectedFile: string | null;
-    onStart: (file: string | null) => void;
     onPauseOrResume: () => void;
     onStop: () => void;
     onConnect: () => void;
     onDisconnect: () => void;
-    getButtonVariant: (buttonType: 'start' | 'pause' | 'stop' | 'connect') => any;
+    getButtonVariant: (buttonType: 'pause' | 'stop' | 'connect') => any;
 }
 
 const PrinterControls: React.FC<PrinterControlsProps> = ({
     printer,
-    selectedFile,
-    onStart,
     onPauseOrResume,
     onStop,
     onConnect,
@@ -25,15 +21,6 @@ const PrinterControls: React.FC<PrinterControlsProps> = ({
 }) => {
     return (
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4">
-            <Button
-                className="flex-1 shadow-md hover:shadow-lg transition-all duration-300 h-10 sm:h-10 text-sm sm:text-sm"
-                variant={getButtonVariant('start')}
-                disabled={printer.status === 'printing' || printer.status === 'disconnected' || !selectedFile}
-                onClick={() => onStart(selectedFile)}
-            >
-                <Play className="h-4 w-4 mr-1 sm:mr-2 sm:h-4 sm:w-4" />
-                Start
-            </Button>
             <Button
                 className="flex-1 shadow-md hover:shadow-lg transition-all duration-300 h-10 sm:h-10 text-sm sm:text-sm"
                 variant={getButtonVariant('pause')}

@@ -10,7 +10,8 @@ import {
     Edit3,
     MoreVertical,
     Plus,
-    Move
+    Move,
+    Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -41,13 +43,13 @@ interface FileNode {
 
 interface FileExplorerProps {
     fileTree: FileNode | null;
-    onFileSelect?: (filePath: string) => void;
     onUpload: (files: File[], folderPath: string) => Promise<any>;
     onCreateFolder: (folderPath: string) => Promise<void>;
     onDelete: (filePath: string) => Promise<void>;
     onRename: (filePath: string, newName: string) => Promise<void>;
     onMove?: (filePath: string, newFolderPath: string) => Promise<void>;
     onAddToQueue?: (filePath: string) => void;
+    onPrintNow?: (filePath: string) => void;
     loading?: boolean;
 }
 
@@ -55,11 +57,11 @@ interface FileNodeComponentProps {
     node: FileNode;
     level: number;
     parentPath: string;
-    onFileSelect?: (filePath: string) => void;
     onDelete: (filePath: string) => Promise<void>;
     onRename: (filePath: string, newName: string) => Promise<void>;
     onMove?: (filePath: string, newFolderPath: string) => Promise<void>;
     onAddToQueue?: (filePath: string) => void;
+    onPrintNow?: (filePath: string) => void;
     allFolders: string[];
 }
 
@@ -67,11 +69,11 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
     node,
     level,
     parentPath,
-    onFileSelect,
     onDelete,
     onRename,
     onMove,
     onAddToQueue,
+    onPrintNow,
     allFolders
 }) => {
     // if parent folder, expand by default
@@ -85,12 +87,6 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
     const handleExpand = () => {
         if (node.type === 'folder') {
             setIsExpanded(!isExpanded);
-        }
-    };
-
-    const handleFileClick = () => {
-        if (node.type === 'file' && node.name.endsWith('.gcode') && onFileSelect) {
-            onFileSelect(node.path);
         }
     };
 
@@ -129,6 +125,12 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
         }
     };
 
+    const handlePrintNow = () => {
+        if (node.type === 'file' && node.name.endsWith('.gcode') && onPrintNow) {
+            onPrintNow(node.path);
+        }
+    };
+
     const handleDelete = async () => {
         try {
             await onDelete(node.path);
@@ -147,11 +149,11 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
     return (
         <div>
             <div
-                className={`flex items-start gap-2 p-2 hover:bg-gray-50 rounded-md cursor-pointer group`}
+                className={`flex items-center gap-2 p-2 hover:bg-gray-50 rounded-md cursor-pointer group`}
                 style={{ paddingLeft: `${level * 20 + 8}px` }}
             >
                 {node.type === 'folder' && (
-                    <button onClick={handleExpand} className="p-1 shrink-0 mt-0.5">
+                    <button onClick={handleExpand} className="p-1 shrink-0">
                         {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
                         ) : (
@@ -160,35 +162,33 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                     </button>
                 )}
                 
-                <div className="flex items-start gap-2 flex-1 min-w-0" onClick={handleFileClick}>
-                    <div className="shrink-0 mt-0.5">
-                        {node.type === 'folder' ? (
-                            <Folder className="h-4 w-4 text-blue-500" />
-                        ) : (
-                            <File className="h-4 w-4 text-gray-500" />
-                        )}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                        {isRenaming ? (
-                            <Input
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
-                                onBlur={handleRename}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRename();
-                                    if (e.key === 'Escape') {
-                                        setIsRenaming(false);
-                                        setNewName(node.name);
-                                    }
-                                }}
-                                className="h-6 text-sm"
-                                autoFocus
-                            />
-                        ) : (
-                            <span className="text-sm break-words">{node.name}</span>
-                        )}
-                    </div>
+                <div className="shrink-0">
+                    {node.type === 'folder' ? (
+                        <Folder className="h-4 w-4 text-blue-500" />
+                    ) : (
+                        <File className="h-4 w-4 text-gray-500" />
+                    )}
+                </div>
+                
+                <div className="flex-1 min-w-0 flex items-center">
+                    {isRenaming ? (
+                        <Input
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            onBlur={handleRename}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRename();
+                                if (e.key === 'Escape') {
+                                    setIsRenaming(false);
+                                    setNewName(node.name);
+                                }
+                            }}
+                            className="h-6 text-sm"
+                            autoFocus
+                        />
+                    ) : (
+                        <span className="text-sm break-words leading-none">{node.name}</span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -207,6 +207,27 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            {node.type === 'file' && node.name.endsWith('.gcode') && (onAddToQueue || onPrintNow) && (
+                                <>
+                                    {onPrintNow && (
+                                        <DropdownMenuItem 
+                                            onClick={handlePrintNow}
+                                            className="font-medium text-green-700 hover:text-green-800 hover:bg-green-50"
+                                        >
+                                            <Play className="h-4 w-4 mr-2" />
+                                            Print Now
+                                        </DropdownMenuItem>
+                                    )}
+                                    {onAddToQueue && (
+                                        <DropdownMenuItem onClick={handleAddToQueue}>
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add to Queue
+                                        </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+                            
                             <DropdownMenuItem onClick={() => setIsRenaming(true)}>
                                 <Edit3 className="h-4 w-4 mr-2" />
                                 Rename
@@ -216,13 +237,6 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                                 <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
                                     <Move className="h-4 w-4 mr-2" />
                                     Move
-                                </DropdownMenuItem>
-                            )}
-                            
-                            {node.type === 'file' && node.name.endsWith('.gcode') && onAddToQueue && (
-                                <DropdownMenuItem onClick={handleAddToQueue}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add to Queue
                                 </DropdownMenuItem>
                             )}
                             
@@ -280,11 +294,11 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
                             node={child}
                             level={level + 1}
                             parentPath={node.path}
-                            onFileSelect={onFileSelect}
                             onDelete={onDelete}
                             onRename={onRename}
                             onMove={onMove}
                             onAddToQueue={onAddToQueue}
+                            onPrintNow={onPrintNow}
                             allFolders={allFolders}
                         />
                     ))}
@@ -296,13 +310,13 @@ const FileNodeComponent: React.FC<FileNodeComponentProps> = ({
 
 const FileExplorer: React.FC<FileExplorerProps> = ({
     fileTree,
-    onFileSelect,
     onUpload,
     onCreateFolder,
     onDelete,
     onRename,
     onMove,
     onAddToQueue,
+    onPrintNow,
     loading = false
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
@@ -476,11 +490,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         node={fileTree}
                         level={0}
                         parentPath=""
-                        onFileSelect={onFileSelect}
                         onDelete={onDelete}
                         onRename={onRename}
                         onMove={onMove}
                         onAddToQueue={onAddToQueue}
+                        onPrintNow={onPrintNow}
                         allFolders={allFolders}
                     />
                 ) : (

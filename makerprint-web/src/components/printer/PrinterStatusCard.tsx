@@ -6,12 +6,10 @@ import PrinterControls from './PrinterControls';
 
 interface PrinterStatusCardProps {
     printer: any;
-    selectedFile: string | null;
     getStatusBadgeClass: (status: string) => string;
     getStatusColor: (status: string) => string;
     getStatusText: (status: string) => string;
-    getButtonVariant: (buttonType: 'start' | 'pause' | 'stop' | 'connect') => any;
-    onStart: (file: string | null) => void;
+    getButtonVariant: (buttonType: 'pause' | 'stop' | 'connect') => any;
     onPauseOrResume: () => void;
     onStop: () => void;
     onConnect: () => void;
@@ -20,12 +18,10 @@ interface PrinterStatusCardProps {
 
 const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
     printer,
-    selectedFile,
     getStatusBadgeClass,
     getStatusColor,
     getStatusText,
     getButtonVariant,
-    onStart,
     onPauseOrResume,
     onStop,
     onConnect,
@@ -159,8 +155,6 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                 {/* Control Buttons */}
                 <PrinterControls
                     printer={printer}
-                    selectedFile={selectedFile}
-                    onStart={onStart}
                     onPauseOrResume={onPauseOrResume}
                     onStop={onStop}
                     onConnect={onConnect}

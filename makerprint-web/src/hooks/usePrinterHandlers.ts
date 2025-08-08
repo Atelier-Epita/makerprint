@@ -3,30 +3,13 @@ import { useToast } from './use-toast';
 
 export const usePrinterHandlers = (name: string | undefined, actions: any, addToQueue: any, startPrint: any) => {
     const { toast } = useToast();
-    const [selectedFile, setSelectedFile] = useState<string | null>(null);
     const [command, setCommand] = useState('');
 
     const { start, stop, pauseOrResume, connect, disconnect, sendCommand } = actions;
 
-    const handleFileSelect = (filePath: string) => {
-        console.log('File selected:', filePath);
-        setSelectedFile(filePath);
-    };
-
     const handleAddToQueue = (filePath: string) => {
         if (filePath.endsWith('.gcode')) {
             addToQueue(filePath, []);
-            toast({
-                title: 'Success',
-                description: 'File added to print queue',
-            });
-        }
-    };
-
-    const handleAddSelectedToQueue = () => {
-        if (selectedFile && selectedFile.endsWith('.gcode')) {
-            addToQueue(selectedFile, []);
-            setSelectedFile(null);
             toast({
                 title: 'Success',
                 description: 'File added to print queue',
@@ -83,14 +66,44 @@ export const usePrinterHandlers = (name: string | undefined, actions: any, addTo
         }
     };
 
+    const handlePrintNow = async (filePath: string) => {
+        if (!name) {
+            console.error('Printer name is not available');
+            return;
+        }
+
+        if (!filePath.endsWith('.gcode')) {
+            console.error('Invalid file type for printing');
+            return;
+        }
+
+        try {
+            // Add file to queue and get the queue item ID
+            const response = await addToQueue(filePath, []);
+            const queueItemId = response.data.queue_item_id;
+            
+            // Immediately start printing the newly added item
+            await startPrint(queueItemId, name);
+            
+            toast({
+                title: 'Print Started',
+                description: 'File added to queue and print started successfully!',
+            });
+            
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to start print immediately',
+                variant: 'destructive',
+            });
+        }
+    };
+
     return {
-        selectedFile,
-        setSelectedFile,
         command,
         setCommand,
-        handleFileSelect,
         handleAddToQueue,
-        handleAddSelectedToQueue,
+        handlePrintNow,
         handleMovement,
         handleHome,
         handleCommandSubmit,
