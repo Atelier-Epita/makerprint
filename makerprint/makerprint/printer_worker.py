@@ -173,6 +173,9 @@ class PrinterWorkerProcess:
             if not self.printer or not self.printer.online:
                 return WorkerResponse(success=False, error="Printer not connected")
             
+            if self.printer.is_printing():
+                return WorkerResponse(success=False, error="Printer is already printing")
+            
             queue_item_id = data.get("queue_item_id")
             if not queue_item_id:
                 return WorkerResponse(success=False, error="Queue item ID cannot be empty")
@@ -180,15 +183,11 @@ class PrinterWorkerProcess:
             from .file_manager import queue_manager
             gcode = self.printer.prepare_gcode_from_queue_item(queue_item_id, queue_manager)
             self.printer.startprint(gcode)
-            
             return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
         except Exception as e:
             self.logger.error(f"Failed to start print from queue item on {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
-            self.printer.startprint(gcode)
-            
-            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
         except Exception as e:
             self.logger.error(f"Failed to start queue item print on {self.printer_name}: {e}")

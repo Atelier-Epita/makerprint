@@ -5,7 +5,7 @@ export const usePrinterHandlers = (name: string | undefined, actions: any, addTo
     const { toast } = useToast();
     const [command, setCommand] = useState('');
 
-    const { start, stop, pauseOrResume, connect, disconnect, sendCommand } = actions;
+    const { stop, pauseOrResume, connect, disconnect, sendCommand } = actions;
 
     const handleAddToQueue = (filePath: string) => {
         if (filePath.endsWith('.gcode')) {
@@ -78,11 +78,8 @@ export const usePrinterHandlers = (name: string | undefined, actions: any, addTo
         }
 
         try {
-            // Add file to queue and get the queue item ID
             const response = await addToQueue(filePath, []);
             const queueItemId = response.data.queue_item_id;
-            
-            // Immediately start printing the newly added item
             await startPrint(queueItemId, name);
             
             toast({
@@ -108,7 +105,6 @@ export const usePrinterHandlers = (name: string | undefined, actions: any, addTo
         handleHome,
         handleCommandSubmit,
         handleStartPrint,
-        handleStart: start,
         handleStop: stop,
         handlePauseOrResume: pauseOrResume,
         handleConnect: connect,

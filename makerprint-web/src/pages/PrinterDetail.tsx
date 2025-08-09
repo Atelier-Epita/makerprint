@@ -55,7 +55,6 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         handleHome,
         handleCommandSubmit,
         handleStartPrint,
-        handleStart,
         handleStop,
         handlePauseOrResume,
         handleConnect,

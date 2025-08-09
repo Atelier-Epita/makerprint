@@ -10,7 +10,7 @@ from fastapi import HTTPException
 
 from . import utils, models
 from .utils import logger
-
+from .file_manager import queue_manager
 
 class Printer(printcore):
     def __init__(self, port, baud=None, printer_name=None, display_name=None, *args, **kwargs):
@@ -35,6 +35,12 @@ class Printer(printcore):
         self.total_paused_duration = 0
         self.pause_start_time = None
         self.bed_clear = True
+
+        self.printing = False
+        self.paused = False
+
+    def is_printing(self):
+        return self.printing or self.paused
 
     def prepare_gcode_from_queue_item(self, queue_item_id, queue_manager):
         """Prepare gcode from a queue item"""
@@ -85,25 +91,19 @@ class Printer(printcore):
 
     def _endcb(self):
         if not self.paused:
-            # Handle queue status update if this was a queue-based print
-            if self.current_queue_item_id:
-                from .file_manager import queue_manager
-                # Mark as completed waiting for human validation
-                queue_manager.update_queue_item_status(
-                    self.current_queue_item_id, 
-                    status="completed",
-                    finished_at=datetime.now().isoformat()
-                )
-                logger.info(f"Print completed on {self.name}. Queue item {self.current_queue_item_id} ready for validation.")
+            queue_manager.update_queue_item_status(
+                self.current_queue_item_id, 
+                status="finished",
+                finished_at=datetime.now().isoformat()
+            )
             
-            # Log the completion
             if self.start_time is not None:
                 elapsed = self._get_actual_elapsed_time()
                 time_string = time.strftime("%H:%M:%S", time.gmtime(elapsed))
                 logger.info(f"Print finished on {self.name} in {time_string}")
             else:
                 logger.info(f"Print finished on {self.name}")
-                
+
             self._reset_print_timing()
         else:
             self.pause_start_time = time.time()

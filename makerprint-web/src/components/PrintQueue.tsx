@@ -230,13 +230,14 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                                 variant={
                                                     item.status === 'todo' ? 'outline' :
                                                     item.status === 'printing' ? 'default' :
-                                                    item.status === 'completed' ? 'secondary' :
                                                     item.status === 'finished' ? 'secondary' :
+                                                    item.status === 'success' ? 'success' :
+                                                    item.status === 'failed' ? 'destructive' :
                                                     'destructive'
                                                 }
                                                 className={`text-xs ${
-                                                    item.status === 'completed' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                                    item.status === 'finished' ? 'bg-green-100 text-green-800 border-green-300' :
+                                                    item.status === 'finished' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                                    item.status === 'success' ? 'bg-green-100 text-green-800 border-green-300' :
                                                     ''
                                                 }`}
                                             >
@@ -288,6 +289,71 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                 </div>
 
                                 <div className="flex items-center justify-between sm:justify-end gap-1 w-full sm:w-auto">
+                                    {/* Status action buttons based on item status */}
+                                    {item.status === 'todo' && onStartPrint && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleStartPrint(item.id)}
+                                            className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm"
+                                            title="Start print"
+                                        >
+                                            <Play className="h-4 w-4 mr-1" />
+                                            Start
+                                        </Button>
+                                    )}
+
+                                    {/* Finished items need validation */}
+                                    {item.status === 'finished' && (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleMarkSuccessful(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
+                                                title="Mark as successful and remove"
+                                            >
+                                                ✓ Success
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleMarkFailed(item.id)}
+                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
+                                                title="Mark as failed"
+                                            >
+                                                ✗ Failed
+                                            </Button>
+                                        </>
+                                    )}
+
+                                    {/* Printing items can be manually marked */}
+                                    {item.status === 'printing' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleMarkFailed(item.id)}
+                                            className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
+                                            title="Mark as failed"
+                                        >
+                                            ✗ Failed
+                                        </Button>
+                                    )}
+
+                                    {/* Failed items can be retried */}
+                                    {item.status === 'failed' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleRetryItem(item.id)}
+                                            className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-orange-600 hover:text-orange-700"
+                                            title="Retry print"
+                                        >
+                                            <Play className="h-4 w-4 mr-1" />
+                                            Retry
+                                        </Button>
+                                    )}
+
                                     {/* Reorder buttons */}
                                     {onReorderQueue && (
                                         <div className="flex gap-0.5 sm:gap-1">
@@ -314,98 +380,16 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
                                         </div>
                                     )}
 
-                                    <div className="flex gap-0.5 sm:gap-1">
-                                        {/* Status action buttons based on item status */}
-                                        {item.status === 'todo' && onStartPrint && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleStartPrint(item.id)}
-                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm"
-                                                title="Start print"
-                                            >
-                                                <Play className="h-4 w-4 mr-1" />
-                                                Start
-                                            </Button>
-                                        )}
-
-                                        {/* Completed items need validation */}
-                                        {item.status === 'completed' && (
-                                            <>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleMarkSuccessful(item.id)}
-                                                    className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
-                                                    title="Mark as successful and remove"
-                                                >
-                                                    ✓ Success
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleMarkFailed(item.id)}
-                                                    className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
-                                                    title="Mark as failed"
-                                                >
-                                                    ✗ Failed
-                                                </Button>
-                                            </>
-                                        )}
-
-                                        {/* Printing items can be manually marked */}
-                                        {item.status === 'printing' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleMarkFailed(item.id)}
-                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-red-600 hover:text-red-700"
-                                                title="Mark as failed"
-                                            >
-                                                ✗ Failed
-                                            </Button>
-                                        )}
-
-                                        {/* Finished items can be marked successful */}
-                                        {item.status === 'finished' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleMarkSuccessful(item.id)}
-                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-green-600 hover:text-green-700"
-                                                title="Mark as successful and remove"
-                                            >
-                                                ✓ Success
-                                            </Button>
-                                        )}
-
-                                        {/* Failed items can be retried */}
-                                        {item.status === 'failed' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleRetryItem(item.id)}
-                                                className="h-8 px-3 text-sm sm:h-8 sm:px-3 sm:text-sm text-orange-600 hover:text-orange-700"
-                                                title="Retry print"
-                                            >
-                                                <Play className="h-4 w-4 mr-1" />
-                                                Retry
-                                            </Button>
-                                        )}
-
-                                        {/* Remove button - only for non-printing items */}
-                                        {item.status !== 'printing' && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleRemoveFromQueue(item.id)}
-                                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
-                                                title="Remove from queue"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={item.status === 'printing'}
+                                        onClick={() => handleRemoveFromQueue(item.id)}
+                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 sm:h-8 sm:w-8"
+                                        title="Remove from queue"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             </div>
                         ))}

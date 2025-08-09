@@ -10,7 +10,9 @@ import {
     markQueueItemSuccessful,
     retryQueueItem
 } from '@/api/files';
-import { startPrinter } from '@/api/printers';
+import {
+    startPrinter,
+} from '@/api/printers';
 
 interface QueueItem {
     id: string;
@@ -62,10 +64,11 @@ export function usePrintQueue() {
 
     const addFileToQueue = async (filePath: string, tags: string[] = []) => {
         try {
-            await addToQueue(filePath, tags);
+            const response = await addToQueue(filePath, tags);
             await loadQueue();
             await loadTags(); // Reload tags as new ones might have been added
             setError(null);
+            return response;
         } catch (err: any) {
             setError(err.message || 'Failed to add file to queue');
             throw err;
@@ -135,32 +138,31 @@ export function usePrintQueue() {
 
     const applyTagFilter = async (tags: string[]) => {
         setActiveTagFilter(tags);
-        // No need to reload - filtering is now computed locally
     };
 
     const clearTagFilter = async () => {
         setActiveTagFilter([]);
-        // No need to reload - filtering is now computed locally
     };
 
     const startPrint = async (queueItemId: string, printerName?: string) => {
         try {
-            const queueItem = queue.find(item => item.id === queueItemId);
+            // refresh the queue if not found in local state
+            let queueItem = fullQueue.find(item => item.id === queueItemId);
+            if (!queueItem) {
+                const freshQueueData = await fetchQueue();
+                queueItem = freshQueueData.find(item => item.id === queueItemId);
+                setFullQueue(freshQueueData);
+            }
+            
             if (!queueItem) {
                 throw new Error('Queue item not found');
             }
 
-            if (printerName) {
-                console.log(`Starting print for queue item: ${queueItemId} on printer: ${printerName}`);
-                await startPrinter(printerName, queueItemId);
-
-                // TODO: only remove when print is marked as "finished" + the print is successfull
-                // await removeFromQueue(queueItemId);
-                // await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
-                // setError(null);
-            } else {
+            if (!printerName) {
                 throw new Error('Printer name is required to start print');
             }
+
+            await startPrinter(printerName, queueItemId);
         } catch (err: any) {
             setError(err.message || 'Failed to start print');
             throw err;

@@ -37,7 +37,6 @@ async def index():
     return {"status": "ok"}
 
 
-# @app.get("/printers/", response_model=list[models.PrinterStatus])
 @app.get("/printers/", response_model=dict[str, models.PrinterStatus])
 async def list_printers():
     printers = {}
@@ -262,6 +261,15 @@ async def add_to_queue(
         raise HTTPException(status_code=404, detail="File not found")
     
     file_name = os.path.basename(file_path)
+    folder = os.path.dirname(file_path)
+
+    # cleanup tags and add the last folder as a tag
+    # probably will be a bit different in the future ?
+    # with the choice of tags for users and so on ?
+    tags = [tag.strip() for tag in tags if tag.strip()]
+    if folder and folder not in tags:
+        tags.append(folder)
+
     queue_item_id = queue_manager.add_to_queue(file_path, file_name, tags)
     
     return {
@@ -321,14 +329,8 @@ async def mark_queue_item_successful(queue_item_id: str):
     queue_item = queue_manager.get_queue_item_by_id(queue_item_id)
     if not queue_item:
         raise HTTPException(status_code=404, detail="Queue item not found")
-    
-    if queue_item.status == "printing":
-        queue_manager.mark_print_finished(queue_item_id)
-    
-    # Then remove from queue
-    success = queue_manager.remove_from_queue(queue_item_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Queue item not found")
+
+    queue_manager.mark_print_successful(queue_item_id)
     return {"success": True}
 
 
