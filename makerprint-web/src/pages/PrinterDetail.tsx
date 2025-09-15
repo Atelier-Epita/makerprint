@@ -10,6 +10,7 @@ import PrinterStatusCard from '../components/printer/PrinterStatusCard';
 import MovementControls from '../components/printer/MovementControls';
 import FilesAndQueueTabs from '../components/printer/FilesAndQueueTabs';
 import { getStatusColor, getStatusBadgeClass, getStatusText, getButtonVariant } from '../utils/printerUtils';
+import Footer from '../components/Footer';
 
 interface PrinterDetailProps { }
 
@@ -36,7 +37,6 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
         addToQueue,
         removeFromQueue,
         reorderQueue,
-        clearQueue,
         applyTagFilter,
         clearTagFilter,
         startPrint,
@@ -149,7 +149,6 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     onStartPrint={handleStartPrint}
                     onRemoveFromQueue={removeFromQueue}
                     onReorderQueue={reorderQueue}
-                    onClearQueue={clearQueue}
                     onApplyTagFilter={applyTagFilter}
                     onClearTagFilter={clearTagFilter}
                     onMarkFailed={markFailed}
@@ -157,12 +156,7 @@ const PrinterDetail: React.FC<PrinterDetailProps> = () => {
                     onRetryItem={retryItem}
                 />
 
-                <footer className="mt-12 mb-6 text-center">
-                    <div className="w-24 h-1 mx-auto bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mb-4"></div>
-                    <p className="text-sm text-gray-500">
-                        MakerPrint - L'Atelier © 2025
-                    </p>
-                </footer>
+                <Footer />
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 """
 Printer Worker Process - Handles a single printer in its own process
 """
+import asyncio
 import os
 import time
 import multiprocessing
@@ -37,6 +38,7 @@ class PrinterWorkerProcess:
                  command_queue: multiprocessing.Queue, 
                  response_queue: multiprocessing.Queue, 
                  status_queue: multiprocessing.Queue,
+                 preferred_baud: Optional[int] = None,
                  monitor_interval: float = None):
         self.printer_name = printer_name
         self.printer_port = printer_port
@@ -53,6 +55,7 @@ class PrinterWorkerProcess:
         
         self.status_thread = None
         self.monitor_interval = monitor_interval or self.DEFAULT_MONITOR_INTERVAL
+        self.preferred_baud = preferred_baud
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -117,15 +120,13 @@ class PrinterWorkerProcess:
         try:
             if self.printer and self.printer.online:
                 return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
-            
+
             baud = data.get("baud") if data else None
+            baud = baud or self.preferred_baud
             printer_config_data = printer_config.get_printer_by_name(self.printer_name)
             display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
             
             self.printer = Printer(self.printer_port, baud=baud, printer_name=self.printer_name, display_name=display_name)
-            
-            # Use asyncio.run for the async connect method
-            import asyncio
             asyncio.run(self.printer.connect())
             
             self.logger.info(f"Connected to printer {self.printer_name} on {self.printer_port}")
@@ -371,10 +372,12 @@ def start_printer_worker(printer_name: str, printer_port: str,
                          command_queue: multiprocessing.Queue,
                          response_queue: multiprocessing.Queue, 
                          status_queue: multiprocessing.Queue,
+                         preferred_baud: Optional[int] = None,
                          monitor_interval: float = None):
     """Entry point for starting a printer worker process"""
     worker = PrinterWorkerProcess(
         printer_name, printer_port, command_queue, response_queue, status_queue,
-        monitor_interval=monitor_interval
+        monitor_interval=monitor_interval,
+        preferred_baud=preferred_baud
     )
     worker.run()

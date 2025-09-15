@@ -376,10 +376,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         setShowUploadDialog(true);
     };
 
-    const handleFileSelect = () => {
-        fileInputRef.current?.click();
-    };
-
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {

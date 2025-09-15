@@ -194,7 +194,6 @@ class PrintQueueManager:
     def _load_queue(self):
         """Load queue from database on startup"""
         self._queue = self.db.load_queue()
-        logger.debug(f"Loaded {len(self._queue)} items from queue database")
     
     def _save_queue(self):
         """Save current queue to database"""

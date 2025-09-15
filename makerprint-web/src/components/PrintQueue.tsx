@@ -52,7 +52,6 @@ const PrintQueue: React.FC<PrintQueueProps> = ({
     onStartPrint,
     onRemoveFromQueue,
     onReorderQueue,
-    onClearQueue,
     onApplyTagFilter,
     onClearTagFilter,
     onMarkFailed,

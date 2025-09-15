@@ -81,7 +81,7 @@ class PrinterManager:
             # start worker process
             process = multiprocessing.Process(
                 target=start_printer_worker,
-                args=(printer_name, printer_port, command_queue, response_queue, self.status_queue),
+                args=(printer_name, printer_port, command_queue, response_queue, self.status_queue, preferred_baud),
                 name=f"PrinterWorker-{printer_name}"
             )
             process.start()

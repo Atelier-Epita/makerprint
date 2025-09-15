@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import FileExplorer from '../FileExplorer';
 import PrintQueue from '../PrintQueue';
+import { start } from 'repl';
 
 interface FilesAndQueueTabsProps {
     fileTree: any;
@@ -18,11 +18,10 @@ interface FilesAndQueueTabsProps {
     onRename: any;
     onMove: any;
     onAddToQueue: (filePath: string) => void;
-    onPrintNow?: (filePath: string) => void;
+    onPrintNow: (filePath: string) => Promise<void>;
     onStartPrint: (queueItemId: string) => Promise<void>;
     onRemoveFromQueue: any;
     onReorderQueue: any;
-    onClearQueue: any;
     onApplyTagFilter: any;
     onClearTagFilter: any;
     onMarkFailed?: (queueItemId: string) => Promise<void>;
@@ -47,7 +46,6 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
     onStartPrint,
     onRemoveFromQueue,
     onReorderQueue,
-    onClearQueue,
     onApplyTagFilter,
     onClearTagFilter,
     onMarkFailed,
@@ -74,7 +72,6 @@ const FilesAndQueueTabs: React.FC<FilesAndQueueTabsProps> = ({
                             onStartPrint={onStartPrint}
                             onRemoveFromQueue={onRemoveFromQueue}
                             onReorderQueue={onReorderQueue}
-                            onClearQueue={onClearQueue}
                             onApplyTagFilter={onApplyTagFilter}
                             onClearTagFilter={onClearTagFilter}
                             onMarkFailed={onMarkFailed}
