@@ -173,7 +173,7 @@ class Printer(printcore):
             status=status,
             port=self.port,
             name=self.name,
-            display_name=self.display_name,
+            displayName=self.display_name,
             baud=self.baud,
             progress=percentage,
             timeElapsed=elapsed_time,

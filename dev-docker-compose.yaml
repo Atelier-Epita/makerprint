@@ -19,7 +19,8 @@ services:
       - GCODEFOLDER=/data
       - LOGPATH=/var/log/makerprint.log
       - LOGLEVEL=DEBUG
-      - DEBUG=true
+      - MOCK=true
+      - DEV=true
       - DATABASE_PATH=/data/makerprint.db
     networks:
       - makerprint-net

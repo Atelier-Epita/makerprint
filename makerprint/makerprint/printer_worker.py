@@ -109,7 +109,7 @@ class PrinterWorkerProcess:
             status="disconnected",
             port=self.printer_port,
             name=self.printer_name,
-            display_name=display_name,
+            displayName=display_name,
             baud=0,
             progress=0
         )

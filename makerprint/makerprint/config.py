@@ -100,8 +100,8 @@ class PrinterConfig:
             }
         
         # if debug mode, add some mock printers
-        debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
-        if debug_mode:
+        mock_mode = os.environ.get("MOCK", "false").lower() == "true"
+        if mock_mode:
             for i in range(3):
                 printer_name = f"MockPrinter_{i+1}"
                 printers[printer_name] = {
@@ -152,10 +152,10 @@ class PrinterConfig:
         usb_pid = printer_config.get('usb_pid')
         usb_location = printer_config.get('usb_location')
         
-        debug_mode = os.environ.get("DEBUG", "false").lower() == "true"
+        mock_mode = os.environ.get("MOCK", "false").lower() == "true"
         
         for device_path, device in current_devices.items():
-            if debug_mode and self._is_mock_device_match(device, usb_vid, usb_pid):
+            if mock_mode and self._is_mock_device_match(device, usb_vid, usb_pid):
                 return device_path
             elif self._is_location_match(device, usb_location, usb_vid, usb_pid):
                 return device_path

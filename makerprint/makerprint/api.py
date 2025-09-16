@@ -59,7 +59,7 @@ async def connect_printer(
     name: str,
     baud: int = None,
 ):
-    response = printer_manager.connect_printer(name, baud)
+    response = await printer_manager.connect_printer(name, baud)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -70,7 +70,7 @@ async def connect_printer(
 
 @app.post("/printers/{name}/disconnect/", response_model=models.PrinterStatus)
 async def disconnect_printer(name: str):
-    response = printer_manager.disconnect_printer(name)
+    response = await printer_manager.disconnect_printer(name)
     
     if not response or not response.success:
         logger.warning(f"Failed to disconnect printer {name}: {response.error if response else 'No response'}")
@@ -85,7 +85,7 @@ async def printer_command(name: str, data: dict = Body(...)):
     if not command:
         raise HTTPException(status_code=400, detail="Command cannot be empty")
 
-    response = printer_manager.send_printer_command(name, command)
+    response = await printer_manager.send_printer_command(name, command)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -102,7 +102,7 @@ async def printer_start(name: str, data: dict = Body(...)):
     if not queue_item_id:
         raise HTTPException(status_code=400, detail="queue_item_id is required")
 
-    response = printer_manager.start_print_from_queue(name, queue_item_id)
+    response = await printer_manager.start_print_from_queue(name, queue_item_id)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -113,7 +113,7 @@ async def printer_start(name: str, data: dict = Body(...)):
 
 @app.post("/printers/{name}/pause/", response_model=models.PrinterStatus)
 async def printer_pause(name: str):
-    response = printer_manager.pause_print(name)
+    response = await printer_manager.pause_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -124,7 +124,7 @@ async def printer_pause(name: str):
 
 @app.post("/printers/{name}/resume/", response_model=models.PrinterStatus)
 async def printer_resume(name: str):
-    response = printer_manager.resume_print(name)
+    response = await printer_manager.resume_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -135,7 +135,7 @@ async def printer_resume(name: str):
 
 @app.post("/printers/{name}/stop/", response_model=models.PrinterStatus)
 async def printer_stop(name: str):
-    response = printer_manager.stop_print(name)
+    response = await printer_manager.stop_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -146,7 +146,7 @@ async def printer_stop(name: str):
 
 @app.post("/printers/{name}/clear_bed/", response_model=models.PrinterStatus)
 async def printer_clear_bed(name: str):
-    response = printer_manager.clear_bed(name)
+    response = await printer_manager.clear_bed(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
