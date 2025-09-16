@@ -69,19 +69,16 @@ export const clearQueue = (tags = null) => {
     return axios.delete(`${API_URL}/queue/`, { params });
 };
 
-// legacy
-
-export const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return axios.post(`${API_URL}/file/upload/`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+export const markQueueItemFailed = (queueItemId, errorMessage = null) => {
+    const data = errorMessage ? { error_message: errorMessage } : {};
+    return axios.post(`${API_URL}/queue/${queueItemId}/mark_failed/`, data);
 };
 
-export const fetchFiles = () => {
-    return axios.get(`${API_URL}/file/list/`).then((res) => res.data);
+export const markQueueItemSuccessful = (queueItemId) => {
+    return axios.post(`${API_URL}/queue/${queueItemId}/mark_successful/`);
+};
+
+export const retryQueueItem = (queueItemId) => {
+    return axios.post(`${API_URL}/queue/${queueItemId}/retry/`);
 };
 

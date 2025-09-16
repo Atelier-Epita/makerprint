@@ -12,8 +12,8 @@ export async function fetchPrinterStatus(printer_name) {
     return response;
 }
 
-export async function startPrinter(printer_name, filename) {
-    const response = await axios.post(`${API_URL}/printers/${printer_name}/start/`, { filename });
+export async function startPrinter(printer_name, queue_item_id) {
+    const response = await axios.post(`${API_URL}/printers/${printer_name}/start/`, { queue_item_id });
     return response;
 }
 

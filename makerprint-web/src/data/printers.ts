@@ -20,8 +20,7 @@ export const files = [
 
 export interface Printer {
   name: string;
-  display_name?: string; // sent by the backend
-  displayName?: string; // computed for the front
+  display_name?: string;
   status: PrinterStatus;
   nozzleTemp: {
     current: number;
@@ -31,7 +30,8 @@ export interface Printer {
     current: number;
     target: number;
   };
-  currentFile?: string;
+  currentQueueItem?: string;
+  currentQueueItemName?: string;
   progress?: number;
   layerHeight?: number;
   timeRemaining?: number;
@@ -50,7 +50,7 @@ export const printers: Printer[] = [
       current: 60,
       target: 60
     },
-    currentFile: 'benchy.gcode',
+    currentQueueItem: 'queue-item-1',
     progress: 45,
     layerHeight: 0.2,
     timeRemaining: 120,
@@ -90,7 +90,7 @@ export const printers: Printer[] = [
       current: 50,
       target: 50
     },
-    currentFile: 'bleu.gcode',
+    currentQueueItem: 'queue-item-2',
     progress: 78,
     layerHeight: 0.15,
     timeRemaining: 45,
@@ -106,7 +106,7 @@ export const printers: Printer[] = [
       current: 65,
       target: 65
     },
-    currentFile: 'complex_part.gcode',
+    currentQueueItem: 'queue-item-3',
     progress: 23,
     layerHeight: 0.1,
     timeRemaining: 0,
@@ -122,6 +122,6 @@ export const printers: Printer[] = [
       current: 60,
       target: 60
     },
-    currentFile: 'phone_stand.gcode',
+    currentQueueItem: 'queue-item-4',
   }
 ];

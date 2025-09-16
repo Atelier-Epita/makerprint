@@ -1,6 +1,7 @@
 """
 Printer Worker Process - Handles a single printer in its own process
 """
+import asyncio
 import os
 import time
 import multiprocessing
@@ -17,7 +18,7 @@ from .config import printer_config
 @dataclass
 class WorkerCommand:
     """Command to send to printer worker"""
-    action: str  # connect, disconnect, command, start, pause, resume, stop, status, clear_bed
+    action: str  # connect, disconnect, command, start, start_queue_item, pause, resume, stop, status, clear_bed, mark_finished, mark_failed
     data: Optional[Dict[str, Any]] = None
 
 
@@ -37,6 +38,7 @@ class PrinterWorkerProcess:
                  command_queue: multiprocessing.Queue, 
                  response_queue: multiprocessing.Queue, 
                  status_queue: multiprocessing.Queue,
+                 preferred_baud: Optional[int] = None,
                  monitor_interval: float = None):
         self.printer_name = printer_name
         self.printer_port = printer_port
@@ -53,6 +55,7 @@ class PrinterWorkerProcess:
         
         self.status_thread = None
         self.monitor_interval = monitor_interval or self.DEFAULT_MONITOR_INTERVAL
+        self.preferred_baud = preferred_baud
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -106,7 +109,7 @@ class PrinterWorkerProcess:
             status="disconnected",
             port=self.printer_port,
             name=self.printer_name,
-            display_name=display_name,
+            displayName=display_name,
             baud=0,
             progress=0
         )
@@ -117,15 +120,13 @@ class PrinterWorkerProcess:
         try:
             if self.printer and self.printer.online:
                 return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
-            
+
             baud = data.get("baud") if data else None
+            baud = baud or self.preferred_baud
             printer_config_data = printer_config.get_printer_by_name(self.printer_name)
             display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
             
             self.printer = Printer(self.printer_port, baud=baud, printer_name=self.printer_name, display_name=display_name)
-            
-            # Use asyncio.run for the async connect method
-            import asyncio
             asyncio.run(self.printer.connect())
             
             self.logger.info(f"Connected to printer {self.printer_name} on {self.printer_port}")
@@ -167,23 +168,30 @@ class PrinterWorkerProcess:
             self.logger.error(f"Failed to send command to {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
-    def _process_start(self, data: Dict[str, Any]) -> WorkerResponse:
-        """Start printing a file"""
+    def _process_start_queue_item(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Start printing from a queue item"""
         try:
             if not self.printer or not self.printer.online:
                 return WorkerResponse(success=False, error="Printer not connected")
             
-            filename = data.get("filename")
-            if not filename:
-                return WorkerResponse(success=False, error="Filename cannot be empty")
+            if self.printer.is_printing():
+                return WorkerResponse(success=False, error="Printer is already printing")
             
-            gcode = self.printer.prepare_gcode(filename)
+            queue_item_id = data.get("queue_item_id")
+            if not queue_item_id:
+                return WorkerResponse(success=False, error="Queue item ID cannot be empty")
+            
+            from .file_manager import queue_manager
+            gcode = self.printer.prepare_gcode_from_queue_item(queue_item_id, queue_manager)
             self.printer.startprint(gcode)
-            
             return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
         except Exception as e:
-            self.logger.error(f"Failed to start print on {self.printer_name}: {e}")
+            self.logger.error(f"Failed to start print from queue item on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start queue item print on {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
     def _process_pause(self) -> WorkerResponse:
@@ -218,6 +226,10 @@ class PrinterWorkerProcess:
             if not self.printer or not self.printer.online:
                 return WorkerResponse(success=False, error="Printer not connected")
             
+            # Mark current print as failed if there's a queue item being printed
+            if self.printer.current_queue_item_id:
+                self.printer.mark_current_print_failed("Print stopped by user")
+            
             self.printer.cancelprint()
             return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
             
@@ -236,6 +248,33 @@ class PrinterWorkerProcess:
             
         except Exception as e:
             self.logger.error(f"Failed to clear bed on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+    
+    def _process_mark_finished(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Mark the current print as finished"""
+        try:
+            if not self.printer:
+                return WorkerResponse(success=False, error="Printer not available")
+            
+            self.printer.mark_current_print_finished()
+            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
+            
+        except Exception as e:
+            self.logger.error(f"Failed to mark print as finished on {self.printer_name}: {e}")
+            return WorkerResponse(success=False, error=str(e))
+    
+    def _process_mark_failed(self, data: Dict[str, Any]) -> WorkerResponse:
+        """Mark the current print as failed"""
+        try:
+            if not self.printer:
+                return WorkerResponse(success=False, error="Printer not available")
+            
+            error_message = data.get("error_message", "Print failed")
+            self.printer.mark_current_print_failed(error_message)
+            return WorkerResponse(success=True, data=self.printer.get_status().model_dump())
+            
+        except Exception as e:
+            self.logger.error(f"Failed to mark print as failed on {self.printer_name}: {e}")
             return WorkerResponse(success=False, error=str(e))
     
     def _process_status(self) -> WorkerResponse:
@@ -265,8 +304,8 @@ class PrinterWorkerProcess:
                 return self._process_disconnect()
             elif command.action == "command":
                 return self._process_command(command.data or {})
-            elif command.action == "start":
-                return self._process_start(command.data or {})
+            elif command.action == "start_queue_item":
+                return self._process_start_queue_item(command.data or {})
             elif command.action == "pause":
                 return self._process_pause()
             elif command.action == "resume":
@@ -275,6 +314,10 @@ class PrinterWorkerProcess:
                 return self._process_stop()
             elif command.action == "clear_bed":
                 return self._process_clear_bed()
+            elif command.action == "mark_finished":
+                return self._process_mark_finished(command.data or {})
+            elif command.action == "mark_failed":
+                return self._process_mark_failed(command.data or {})
             elif command.action == "status":
                 return self._process_status()
             else:
@@ -329,10 +372,12 @@ def start_printer_worker(printer_name: str, printer_port: str,
                          command_queue: multiprocessing.Queue,
                          response_queue: multiprocessing.Queue, 
                          status_queue: multiprocessing.Queue,
+                         preferred_baud: Optional[int] = None,
                          monitor_interval: float = None):
     """Entry point for starting a printer worker process"""
     worker = PrinterWorkerProcess(
         printer_name, printer_port, command_queue, response_queue, status_queue,
-        monitor_interval=monitor_interval
+        monitor_interval=monitor_interval,
+        preferred_baud=preferred_baud
     )
     worker.run()

@@ -6,12 +6,10 @@ import PrinterControls from './PrinterControls';
 
 interface PrinterStatusCardProps {
     printer: any;
-    selectedFile: string | null;
     getStatusBadgeClass: (status: string) => string;
     getStatusColor: (status: string) => string;
     getStatusText: (status: string) => string;
-    getButtonVariant: (buttonType: 'start' | 'pause' | 'stop' | 'connect') => any;
-    onStart: (file: string | null) => void;
+    getButtonVariant: (buttonType: 'pause' | 'stop' | 'connect') => any;
     onPauseOrResume: () => void;
     onStop: () => void;
     onConnect: () => void;
@@ -20,12 +18,10 @@ interface PrinterStatusCardProps {
 
 const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
     printer,
-    selectedFile,
     getStatusBadgeClass,
     getStatusColor,
     getStatusText,
     getButtonVariant,
-    onStart,
     onPauseOrResume,
     onStop,
     onConnect,
@@ -62,10 +58,10 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                                 <div className="w-8 h-8 flex items-center justify-center rounded-md bg-blue-100 text-blue-600 mr-3">
                                     <File className="h-4 w-4" />
                                 </div>
-                                <span className="text-sm font-medium text-muted-foreground">File</span>
+                                <span className="text-sm font-medium text-muted-foreground">File Name</span>
                             </div>
                             <span className="text-sm font-semibold truncate max-w-[200px]">
-                                {printer.currentFile || 'No file selected'}
+                                {printer.currentQueueItemName || printer.currentQueueItem || 'No item selected'}
                             </span>
                         </div>
 
@@ -159,8 +155,6 @@ const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                 {/* Control Buttons */}
                 <PrinterControls
                     printer={printer}
-                    selectedFile={selectedFile}
-                    onStart={onStart}
                     onPauseOrResume={onPauseOrResume}
                     onStop={onStop}
                     onConnect={onConnect}

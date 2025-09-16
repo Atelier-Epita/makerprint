@@ -7,7 +7,7 @@ import uuid
 
 from . import models, utils
 from .utils import logger
-from .persistence import SQLiteDatabase
+from .database import SQLiteDatabase
 
 
 class FileManager:
@@ -50,8 +50,10 @@ class FileManager:
             try:
                 for child in sorted(directory.iterdir()):
                     if child.name.startswith('.'):
-                        continue  # Skip hidden files
-                    node.children.append(self._build_file_tree(child))
+                        continue  # skip hidden files
+                    # Include directories or gcode files
+                    if child.is_dir() or child.name.endswith('.gcode'):
+                        node.children.append(self._build_file_tree(child))
             except PermissionError:
                 logger.warning(f"Permission denied accessing {directory}")
                 
@@ -192,7 +194,6 @@ class PrintQueueManager:
     def _load_queue(self):
         """Load queue from database on startup"""
         self._queue = self.db.load_queue()
-        logger.info(f"Loaded {len(self._queue)} items from queue database")
     
     def _save_queue(self):
         """Save current queue to database"""
@@ -216,7 +217,7 @@ class PrintQueueManager:
         
         self._queue.append(queue_item)
         self._save_queue()
-        logger.info(f"Added {file_name} to queue with tags: {tags}")
+        logger.debug(f"Added {file_name} to queue with tags: {tags}")
         return queue_item.id
     
     def remove_from_queue(self, queue_item_id: str) -> bool:
@@ -230,11 +231,14 @@ class PrintQueueManager:
         success = len(self._queue) < original_length
         if success:
             self._save_queue()
-            logger.info(f"Removed queue item {queue_item_id} from queue")
+            logger.debug(f"Removed queue item {queue_item_id} from queue")
         return success
     
     def get_queue(self, tag_filter: List[str] = None) -> List[models.QueueItem]:
         """Get the queue, optionally filtered by tags"""
+        # Reload from database to ensure we have the latest state
+        self._load_queue()
+        
         if not tag_filter:
             return self._queue.copy()
         
@@ -246,18 +250,13 @@ class PrintQueueManager:
         
         return filtered_queue
     
-    def get_next_file(self, tag_filter: List[str] = None) -> Optional[models.QueueItem]:
-        """Get the next file in the queue, optionally filtered by tags"""
-        queue = self.get_queue(tag_filter)
-        return queue[0] if queue else None
-    
     def clear_queue(self, tag_filter: List[str] = None) -> bool:
         """Clear all items from the queue, optionally filtered by tags"""
         if not tag_filter:
             # Clear entire queue
             self._queue = []
             self._save_queue()
-            logger.info("Cleared entire queue")
+            logger.debug("Cleared entire queue")
             return True
         else:
             # Clear only items matching tags
@@ -269,7 +268,7 @@ class PrintQueueManager:
             removed_count = original_length - len(self._queue)
             if removed_count > 0:
                 self._save_queue()
-            logger.info(f"Cleared {removed_count} items with tags {tag_filter} from queue")
+            logger.debug(f"Cleared {removed_count} items with tags {tag_filter} from queue")
             return removed_count > 0
     
     def reorder_queue(self, item_ids: List[str]) -> bool:
@@ -298,6 +297,89 @@ class PrintQueueManager:
         for item in self._queue:
             all_tags.update(item.tags)
         return sorted(list(all_tags))
+
+    def update_queue_item_status(self, item_id: str, status: str, printer_name: str = None,
+                                started_at: str = None, finished_at: str = None,
+                                error_message: str = None) -> bool:
+        """Update the status of a queue item"""
+        # Update in memory
+        for item in self._queue:
+            if item.id == item_id:
+                item.status = status
+                if printer_name is not None:
+                    item.printer_name = printer_name
+                if started_at is not None:
+                    item.started_at = started_at
+                if finished_at is not None:
+                    item.finished_at = finished_at
+                if error_message is not None:
+                    item.error_message = error_message
+                break
+        else:
+            logger.warning(f"Queue item {item_id} not found for status update")
+            return False
+        
+        # Update in database
+        success = self.db.update_queue_item_status(item_id, status, printer_name, 
+                                                  started_at, finished_at, error_message)
+        if not success:
+            logger.error(f"Failed to update queue item {item_id} in database")
+        
+        return success
+
+    def get_queue_item_by_id(self, item_id: str) -> Optional[models.QueueItem]:
+        """Get a specific queue item by ID"""
+        self._load_queue()
+
+        for item in self._queue:
+            if item.id == item_id:
+                return item
+        return None
+
+    def mark_print_started(self, item_id: str, printer_name: str) -> bool:
+        """Mark a queue item as started printing"""
+        return self.update_queue_item_status(
+            item_id, 
+            status="printing", 
+            printer_name=printer_name,
+            started_at=datetime.now().isoformat()
+        )
+
+    def mark_print_finished(self, item_id: str) -> bool:
+        """Mark a queue item as finished printing"""
+        return self.update_queue_item_status(
+            item_id,
+            status="finished",
+            finished_at=datetime.now().isoformat()
+        )
+
+    def mark_print_failed(self, item_id: str, error_message: str = None) -> bool:
+        """Mark a queue item as failed"""
+        return self.update_queue_item_status(
+            item_id,
+            status="failed",
+            finished_at=datetime.now().isoformat(),
+            error_message=error_message
+        )
+    
+    def mark_print_successful(self, item_id: str) -> bool:
+        """Mark a queue item as successful and remove it from the queue"""
+        return self.update_queue_item_status(
+            item_id,
+            status="success",
+            finished_at=datetime.now().isoformat()
+        )
+
+    def retry_queue_item(self, item_id: str) -> bool:
+        """Reset a finished or failed queue item back to todo status"""
+        return self.update_queue_item_status(
+            item_id,
+            status="todo",
+            printer_name=None,
+            started_at=None,
+            finished_at=None,
+            error_message=None
+        )
 
 
 # Global instances

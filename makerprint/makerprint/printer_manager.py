@@ -1,16 +1,18 @@
 """
 Printer Process Manager - Manages multiple printer worker processes
 """
-import multiprocessing
-import time
-import threading
+import asyncio
 import atexit
-from typing import Dict, Optional, Any
-from queue import Queue, Empty
+import multiprocessing
+import os
+import threading
+import time
+from queue import Empty, Queue
+from typing import Any, Dict, Optional
 
-from .printer_worker import WorkerCommand, WorkerResponse, start_printer_worker
-from . import utils, models
+from . import models, utils
 from .config import printer_config
+from .printer_worker import WorkerCommand, WorkerResponse, start_printer_worker
 
 
 class PrinterManager:
@@ -20,31 +22,46 @@ class PrinterManager:
         self.workers: Dict[str, Dict[str, Any]] = {}
         self.printer_statuses: Dict[str, Dict[str, Any]] = {}
         self.status_queue = multiprocessing.Queue()
-        self.status_thread = None
+        
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.loop_thread: Optional[threading.Thread] = None
         self.running = True
         
-        # Start status monitoring thread
-        self._start_status_monitor()
-        
-        # Register cleanup function
+        self._start_event_loop()
         atexit.register(self.shutdown)
         
-        self.logger = utils.logger.getChild("manager")
+        self.logger = utils.logger.getChild("printer_manager")
     
-    def _start_status_monitor(self):
-        """Start the status monitoring thread"""
-        self.status_thread = threading.Thread(target=self._status_monitor_loop, daemon=True)
-        self.status_thread.start()
-    
-    def _status_monitor_loop(self):
-        """Monitor status updates from worker processes"""
+    def _start_event_loop(self):
+        """Start the asyncio event loop in a separate thread"""
+        self.loop = asyncio.new_event_loop()
+        self.loop_thread = threading.Thread(target=self._run_event_loop, daemon=True)
+        self.loop_thread.start()
+
+    def _run_event_loop(self):
+        """Run the asyncio event loop"""
+        asyncio.set_event_loop(self.loop)
+        self.loop.create_task(self._status_monitor_loop_async())
+        self.loop.run_forever()
+
+    async def _status_monitor_loop_async(self):
+        """Asynchronously monitor status updates from worker processes"""
+        if not self.loop:
+            self.logger.error("Event loop not initialized")
+            return
+
         while self.running:
             try:
-                # Get status update from worker processes
-                printer_name, status = self.status_queue.get(timeout=1.0)
-                self.printer_statuses[printer_name] = status
-            except:
+                status_update = await self.loop.run_in_executor(None, self.status_queue.get, True, 1.0)
+                if status_update:
+                    printer_name, status = status_update
+                    self.printer_statuses[printer_name] = status
+            except Empty:
                 continue
+            except Exception as e:
+                self.logger.error(f"Error in status monitor loop: {e}")
+            
+            await asyncio.sleep(0.1)
     
     def _ensure_worker_running(self, printer_name: str) -> bool:
         """Ensure a worker process is running for the given printer"""
@@ -53,7 +70,7 @@ class PrinterManager:
             if process.is_alive():
                 return True
             else:
-                # Process died, clean it up
+                # process died, clean it up
                 self.logger.warning(f"Worker process for {printer_name} died, cleaning up")
                 self._cleanup_worker(printer_name)
         
@@ -71,17 +88,16 @@ class PrinterManager:
         display_name = printer_config_data.get('display_name', printer_name) if printer_config_data else printer_name
         preferred_baud = printer_config_data.get('preferred_baud') if printer_config_data else None
 
-        #TODO: use preferred_baud to set baud rate in worker
-        
         try:
             # create queues
             command_queue = multiprocessing.Queue()
             response_queue = multiprocessing.Queue()
             
             # start worker process
+            # TODO: use threads if in dev mode (because of daemon process not being able to spawn children)
             process = multiprocessing.Process(
                 target=start_printer_worker,
-                args=(printer_name, printer_port, command_queue, response_queue, self.status_queue),
+                args=(printer_name, printer_port, command_queue, response_queue, self.status_queue, preferred_baud),
                 name=f"PrinterWorker-{printer_name}"
             )
             process.start()
@@ -103,7 +119,8 @@ class PrinterManager:
                 "progress": 0,
                 "timeElapsed": 0,
                 "timeRemaining": 0,
-                "currentFile": None,
+                "currentQueueItem": None,
+                "currentQueueItemName": None,
                 "bedClear": False,
                 "bedTemp": {"current": 0, "target": 0},
                 "nozzleTemp": {"current": 0, "target": 0},
@@ -156,31 +173,33 @@ class PrinterManager:
             self.logger.error(f"Failed to stop worker for {printer_name}: {e}")
             return False
     
-    def _send_command(self, printer_name: str, command: WorkerCommand, timeout: float = 10.0) -> Optional[WorkerResponse]:
-        """Send a command to a printer worker"""
+    async def _send_command(self, printer_name: str, command: WorkerCommand, timeout: float = 10.0) -> Optional[WorkerResponse]:
+        """Asynchronously send a command to a printer worker, safely callable from another loop."""
         if not self._ensure_worker_running(printer_name):
             return WorkerResponse(success=False, error="Failed to start printer worker")
-        
-        try:
-            worker_info = self.workers[printer_name]
-            
-            # Send command
-            worker_info['command_queue'].put(command)
-            
-            # Wait for response
-            start_time = time.time()
-            while time.time() - start_time < timeout:
-                try:
-                    response = worker_info['response_queue'].get(timeout=0.1)
-                    return response
-                except:
-                    continue
-            
-            return WorkerResponse(success=False, error="Command timeout")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to send command to {printer_name}: {e}")
-            return WorkerResponse(success=False, error=str(e))
+
+        async def _send_and_receive():
+            try:
+                # send cmd an await response
+                worker_info = self.workers[printer_name]
+                await self.loop.run_in_executor(None, worker_info['command_queue'].put, command)
+                f = self.loop.run_in_executor(None, worker_info['response_queue'].get, True, timeout)
+                return await f 
+                
+            except Empty:
+                return WorkerResponse(success=False, error="Command timeout")
+            except Exception as e:
+                self.logger.error(f"Failed to send command to {printer_name}: {e}")
+                return WorkerResponse(success=False, error=str(e))
+
+        # check if the current loop is the same as the manager's loop
+        current_loop = asyncio.get_running_loop()
+        if current_loop is self.loop:
+            return await _send_and_receive()
+
+        # if different loop, schedule it on the manager's loop 
+        future = asyncio.run_coroutine_threadsafe(_send_and_receive(), self.loop)
+        return await asyncio.wrap_future(future, loop=current_loop)
     
     def list_available_printers(self) -> list[str]:
         """List all available printers"""
@@ -214,7 +233,8 @@ class PrinterManager:
             "progress": 0,
             "timeElapsed": 0,
             "timeRemaining": 0,
-            "currentFile": None,
+            "currentQueueItem": None,
+            "currentQueueItemName": None,
             "bedClear": False,
             "bedTemp": {"current": 0, "target": 0},
             "nozzleTemp": {"current": 0, "target": 0},
@@ -227,7 +247,7 @@ class PrinterManager:
             statuses[printer_name] = self.get_printer_status(printer_name)
         return statuses
     
-    def connect_printer(self, printer_name: str, baud: Optional[int] = None) -> Optional[WorkerResponse]:
+    async def connect_printer(self, printer_name: str, baud: Optional[int] = None) -> Optional[WorkerResponse]:
         """Connect to a printer"""
         # Use preferred baud rate if no baud specified
         if baud is None:
@@ -236,57 +256,68 @@ class PrinterManager:
                 baud = preferred_baud
         
         command = WorkerCommand(action="connect", data={"baud": baud} if baud else None)
-        return self._send_command(printer_name, command)
+        return await self._send_command(printer_name, command)
     
-    def disconnect_printer(self, printer_name: str) -> Optional[WorkerResponse]:
+    async def disconnect_printer(self, printer_name: str) -> Optional[WorkerResponse]:
         """Disconnect from a printer"""
         command = WorkerCommand(action="disconnect")
-        response = self._send_command(printer_name, command)
+        response = await self._send_command(printer_name, command)
         
         # Also stop the worker process
         self._stop_worker(printer_name)
         
         return response
     
-    def send_printer_command(self, printer_name: str, gcode_command: str) -> Optional[WorkerResponse]:
+    async def send_printer_command(self, printer_name: str, gcode_command: str) -> Optional[WorkerResponse]:
         """Send a G-code command to a printer"""
         command = WorkerCommand(action="command", data={"command": gcode_command})
-        return self._send_command(printer_name, command)
+        return await self._send_command(printer_name, command)
     
-    def start_print(self, printer_name: str, filename: str) -> Optional[WorkerResponse]:
-        """Start printing a file"""
+    async def pause_print(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Pause printing"""
+        command = WorkerCommand(action="pause")
+        return await self._send_command(printer_name, command)
+    
+    async def resume_print(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Resume printing"""
+        command = WorkerCommand(action="resume")
+        return await self._send_command(printer_name, command)
+    
+    async def stop_print(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Stop printing"""
+        command = WorkerCommand(action="stop")
+        return await self._send_command(printer_name, command)
+    
+    async def clear_bed(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Clear the bed"""
+        command = WorkerCommand(action="clear_bed")
+        return await self._send_command(printer_name, command)
+    
+    async def start_print_from_queue(self, printer_name: str, queue_item_id: str) -> Optional[WorkerResponse]:
+        """Start printing from a queue item"""
         # try to start the worker if not already running
         if not self._ensure_worker_running(printer_name):
             return WorkerResponse(success=False, error="Failed to start printer worker")
         
         # if not connected, connect first
-        if self.get_printer_status(printer_name)["status"] != "connected":
-            connect_response = self.connect_printer(printer_name)
-            if not connect_response.success:
+        status = self.get_printer_status(printer_name)["status"]
+        if status not in ["idle", "printing", "paused"]:
+            connect_response = await self.connect_printer(printer_name)
+            if not connect_response or not connect_response.success:
                 return connect_response
 
-        command = WorkerCommand(action="start", data={"filename": filename})
-        return self._send_command(printer_name, command)
+        command = WorkerCommand(action="start_queue_item", data={"queue_item_id": queue_item_id})
+        return await self._send_command(printer_name, command)
     
-    def pause_print(self, printer_name: str) -> Optional[WorkerResponse]:
-        """Pause printing"""
-        command = WorkerCommand(action="pause")
-        return self._send_command(printer_name, command)
+    async def mark_print_finished(self, printer_name: str) -> Optional[WorkerResponse]:
+        """Mark the current print as finished"""
+        command = WorkerCommand(action="mark_finished")
+        return await self._send_command(printer_name, command)
     
-    def resume_print(self, printer_name: str) -> Optional[WorkerResponse]:
-        """Resume printing"""
-        command = WorkerCommand(action="resume")
-        return self._send_command(printer_name, command)
-    
-    def stop_print(self, printer_name: str) -> Optional[WorkerResponse]:
-        """Stop printing"""
-        command = WorkerCommand(action="stop")
-        return self._send_command(printer_name, command)
-    
-    def clear_bed(self, printer_name: str) -> Optional[WorkerResponse]:
-        """Clear the bed"""
-        command = WorkerCommand(action="clear_bed")
-        return self._send_command(printer_name, command)
+    async def mark_print_failed(self, printer_name: str, error_message: str = None) -> Optional[WorkerResponse]:
+        """Mark the current print as failed"""
+        command = WorkerCommand(action="mark_failed", data={"error_message": error_message})
+        return await self._send_command(printer_name, command)
     
     def shutdown(self):
         """Shutdown all worker processes"""
@@ -298,8 +329,10 @@ class PrinterManager:
             self._stop_worker(printer_name)
         
         # Stop status monitoring thread
-        if self.status_thread and self.status_thread.is_alive():
-            self.status_thread.join(timeout=2.0)
+        if self.loop and self.loop.is_running():
+            self.loop.call_soon_threadsafe(self.loop.stop)
+        if self.loop_thread and self.loop_thread.is_alive():
+            self.loop_thread.join(timeout=2.0)
         
         self.logger.info("Printer manager shutdown complete")
 

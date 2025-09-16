@@ -5,9 +5,14 @@ import {
     addToQueue,
     removeFromQueue,
     reorderQueue,
-    clearQueue
+    clearQueue,
+    markQueueItemFailed,
+    markQueueItemSuccessful,
+    retryQueueItem
 } from '@/api/files';
-import { startPrinter } from '@/api/printers';
+import {
+    startPrinter,
+} from '@/api/printers';
 
 interface QueueItem {
     id: string;
@@ -15,6 +20,11 @@ interface QueueItem {
     file_path: string;
     added_at: string;
     tags: string[];
+    status: string;  // todo, printing, finished, failed
+    printer_name?: string;
+    started_at?: string;
+    finished_at?: string;
+    error_message?: string;
 }
 
 export function usePrintQueue() {
@@ -54,10 +64,11 @@ export function usePrintQueue() {
 
     const addFileToQueue = async (filePath: string, tags: string[] = []) => {
         try {
-            await addToQueue(filePath, tags);
+            const response = await addToQueue(filePath, tags);
             await loadQueue();
             await loadTags(); // Reload tags as new ones might have been added
             setError(null);
+            return response;
         } catch (err: any) {
             setError(err.message || 'Failed to add file to queue');
             throw err;
@@ -127,34 +138,66 @@ export function usePrintQueue() {
 
     const applyTagFilter = async (tags: string[]) => {
         setActiveTagFilter(tags);
-        // No need to reload - filtering is now computed locally
     };
 
     const clearTagFilter = async () => {
         setActiveTagFilter([]);
-        // No need to reload - filtering is now computed locally
     };
 
     const startPrint = async (queueItemId: string, printerName?: string) => {
         try {
-            const queueItem = queue.find(item => item.id === queueItemId);
+            // refresh the queue if not found in local state
+            let queueItem = fullQueue.find(item => item.id === queueItemId);
+            if (!queueItem) {
+                const freshQueueData = await fetchQueue();
+                queueItem = freshQueueData.find(item => item.id === queueItemId);
+                setFullQueue(freshQueueData);
+            }
+            
             if (!queueItem) {
                 throw new Error('Queue item not found');
             }
 
-            if (printerName) {
-                console.log(`Starting print for queue item: ${queueItemId} on printer: ${printerName}`);
-                await startPrinter(printerName, queueItem.file_path);
-
-                // TODO: only remove when print is marked as "finished" + the print is successfull
-                // await removeFromQueue(queueItemId);
-                // await loadQueue(activeTagFilter.length > 0 ? activeTagFilter : undefined);
-                // setError(null);
-            } else {
+            if (!printerName) {
                 throw new Error('Printer name is required to start print');
             }
+
+            await startPrinter(printerName, queueItemId);
         } catch (err: any) {
             setError(err.message || 'Failed to start print');
+            throw err;
+        }
+    };
+
+    const markItemFailed = async (queueItemId: string, errorMessage?: string) => {
+        try {
+            await markQueueItemFailed(queueItemId, errorMessage);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to mark item as failed');
+            throw err;
+        }
+    };
+
+    const markItemSuccessful = async (queueItemId: string) => {
+        try {
+            await markQueueItemSuccessful(queueItemId);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to mark item as successful');
+            throw err;
+        }
+    };
+
+    const retryItem = async (queueItemId: string) => {
+        try {
+            await retryQueueItem(queueItemId);
+            await loadQueue();
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to retry item');
             throw err;
         }
     };
@@ -177,6 +220,9 @@ export function usePrintQueue() {
         applyTagFilter,
         clearTagFilter,
         startPrint,
+        markFailed: markItemFailed,
+        markSuccessful: markItemSuccessful,
+        retryItem,
         refreshQueue: () => loadQueue(),
         refreshTags: loadTags
     };

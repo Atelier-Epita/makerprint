@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-    startPrinter,
     stopPrinter,
     pausePrinter,
     resumePrinter,
@@ -25,12 +24,7 @@ export function usePrinterStatus(printerName?: string) {
 
         fetchPrinterStatus(printerName)
             .then(res => {
-                const printerData = res.data;
-                const enrichedPrinter = {
-                    ...printerData,
-                    displayName: printerData.display_name || printerData.name
-                };
-                setStatus(enrichedPrinter);
+                setStatus(res.data);
             })
             .catch(err => setError(err.message || 'Erreur inconnue'))
             .finally(() => setLoading(false));
@@ -52,14 +46,6 @@ export function usePrinterStatus(printerName?: string) {
         return () => clearInterval(interval);
     }, [printerName]);
 
-    const start = async (selectedFile) => {
-        startPrinter(printerName, selectedFile)
-            .then((resp) => {
-                setStatus(resp.data);
-            }).catch((error) => {
-                console.error('Error starting print:', error);
-            });
-    }
     const stop = async () => {
         stopPrinter(printerName)
             .then((resp) => {
@@ -115,7 +101,6 @@ export function usePrinterStatus(printerName?: string) {
     }
 
     const actions = {
-        start,
         stop,
         pauseOrResume,
         connect,

@@ -10,10 +10,11 @@ from hypercorn.config import Config
 
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", 5000))
-DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+DEV = os.environ.get("DEV", "false").lower() == "true"
+MOCK = os.environ.get("MOCK", "false").lower() == "true"
 
-if DEBUG:
-    utils.logger.info("Debug mode enabled")
+if MOCK:
+    utils.logger.info("mock mode enabled, creating mock printers")
     for i in range(3):
         utils.create_mock_printer(i)
 
@@ -22,7 +23,7 @@ if DEBUG:
 def main():
     config = Config()
     config.bind = f"{HOST}:{PORT}"
-    config.use_reloader = DEBUG
+    config.use_reloader = DEV
 
     utils.logger.info(f"Starting server on {HOST}:{PORT}")
     utils.logger.info("Press Ctrl+C to quit.")

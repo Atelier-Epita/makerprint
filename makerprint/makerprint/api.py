@@ -37,7 +37,6 @@ async def index():
     return {"status": "ok"}
 
 
-# @app.get("/printers/", response_model=list[models.PrinterStatus])
 @app.get("/printers/", response_model=dict[str, models.PrinterStatus])
 async def list_printers():
     printers = {}
@@ -60,7 +59,7 @@ async def connect_printer(
     name: str,
     baud: int = None,
 ):
-    response = printer_manager.connect_printer(name, baud)
+    response = await printer_manager.connect_printer(name, baud)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -71,7 +70,7 @@ async def connect_printer(
 
 @app.post("/printers/{name}/disconnect/", response_model=models.PrinterStatus)
 async def disconnect_printer(name: str):
-    response = printer_manager.disconnect_printer(name)
+    response = await printer_manager.disconnect_printer(name)
     
     if not response or not response.success:
         logger.warning(f"Failed to disconnect printer {name}: {response.error if response else 'No response'}")
@@ -86,7 +85,7 @@ async def printer_command(name: str, data: dict = Body(...)):
     if not command:
         raise HTTPException(status_code=400, detail="Command cannot be empty")
 
-    response = printer_manager.send_printer_command(name, command)
+    response = await printer_manager.send_printer_command(name, command)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -97,11 +96,13 @@ async def printer_command(name: str, data: dict = Body(...)):
 
 @app.post("/printers/{name}/start/", response_model=models.PrinterStatus)
 async def printer_start(name: str, data: dict = Body(...)):
-    filename = data.get("filename")
-    if not filename:
-        raise HTTPException(status_code=400, detail="Filename cannot be empty")
+    """Start printing from queue item"""
+    queue_item_id = data.get("queue_item_id")
+    
+    if not queue_item_id:
+        raise HTTPException(status_code=400, detail="queue_item_id is required")
 
-    response = printer_manager.start_print(name, filename)
+    response = await printer_manager.start_print_from_queue(name, queue_item_id)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -112,7 +113,7 @@ async def printer_start(name: str, data: dict = Body(...)):
 
 @app.post("/printers/{name}/pause/", response_model=models.PrinterStatus)
 async def printer_pause(name: str):
-    response = printer_manager.pause_print(name)
+    response = await printer_manager.pause_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -123,7 +124,7 @@ async def printer_pause(name: str):
 
 @app.post("/printers/{name}/resume/", response_model=models.PrinterStatus)
 async def printer_resume(name: str):
-    response = printer_manager.resume_print(name)
+    response = await printer_manager.resume_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -134,7 +135,7 @@ async def printer_resume(name: str):
 
 @app.post("/printers/{name}/stop/", response_model=models.PrinterStatus)
 async def printer_stop(name: str):
-    response = printer_manager.stop_print(name)
+    response = await printer_manager.stop_print(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -145,7 +146,7 @@ async def printer_stop(name: str):
 
 @app.post("/printers/{name}/clear_bed/", response_model=models.PrinterStatus)
 async def printer_clear_bed(name: str):
-    response = printer_manager.clear_bed(name)
+    response = await printer_manager.clear_bed(name)
     
     if not response or not response.success:
         error_msg = response.error if response else "Failed to communicate with printer worker"
@@ -260,6 +261,15 @@ async def add_to_queue(
         raise HTTPException(status_code=404, detail="File not found")
     
     file_name = os.path.basename(file_path)
+    folder = os.path.dirname(file_path)
+
+    # cleanup tags and add the last folder as a tag
+    # probably will be a bit different in the future ?
+    # with the choice of tags for users and so on ?
+    tags = [tag.strip() for tag in tags if tag.strip()]
+    if folder and folder not in tags:
+        tags.append(folder)
+
     queue_item_id = queue_manager.add_to_queue(file_path, file_name, tags)
     
     return {
@@ -293,26 +303,41 @@ async def clear_queue(tags: str = Query(None)):
     return {"success": True}
 
 
-# legacy
-
-@app.get("/file/list/", response_model=list[str])
-async def list_files():
-    """legacy"""
-    files = file_manager.get_files_flat()
-    return [file.name for file in files]
-
-
-@app.post("/file/upload/", response_model=dict[str, bool])
-async def upload_file(file: UploadFile = FastAPIFile(...)):
-    """legacy"""
-    if not file.filename.endswith(".gcode"):
-        raise HTTPException(status_code=400, detail="File must be a .gcode file")
-
-    folder = utils.GCODEFOLDER
-    if not os.path.exists(folder):
-        os.mkdir(folder)
-
-    with open(os.path.join(folder, file.filename), "wb") as f:
-        f.write(file.file.read())
-
+@app.post("/queue/{queue_item_id}/retry/")
+async def retry_queue_item(queue_item_id: str):
+    """Reset a queue item back to 'todo' status for retry"""
+    success = queue_manager.retry_queue_item(queue_item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Queue item not found")
     return {"success": True}
+
+
+@app.post("/queue/{queue_item_id}/mark_failed/")
+async def mark_queue_item_failed(queue_item_id: str, data: dict = Body(default={})):
+    """Mark a queue item as failed"""
+    error_message = data.get("error_message", "Print failed")
+    success = queue_manager.mark_print_failed(queue_item_id, error_message)
+    if not success:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    return {"success": True}
+
+
+@app.post("/queue/{queue_item_id}/mark_successful/")
+async def mark_queue_item_successful(queue_item_id: str):
+    """Mark a queue item as successful and remove it from the queue"""
+    # First mark as finished if not already
+    queue_item = queue_manager.get_queue_item_by_id(queue_item_id)
+    if not queue_item:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+
+    queue_manager.mark_print_successful(queue_item_id)
+    return {"success": True}
+
+
+@app.get("/queue/{queue_item_id}/", response_model=models.QueueItem)
+async def get_queue_item(queue_item_id: str):
+    """Get details of a specific queue item"""
+    queue_item = queue_manager.get_queue_item_by_id(queue_item_id)
+    if not queue_item:
+        raise HTTPException(status_code=404, detail="Queue item not found")
+    return queue_item

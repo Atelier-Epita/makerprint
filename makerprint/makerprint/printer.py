@@ -2,6 +2,7 @@ import os
 import threading
 import time
 import asyncio
+from datetime import datetime
 
 from printrun.printcore import printcore
 from printrun import gcoder
@@ -9,7 +10,7 @@ from fastapi import HTTPException
 
 from . import utils, models
 from .utils import logger
-
+from .file_manager import queue_manager
 
 class Printer(printcore):
     def __init__(self, port, baud=None, printer_name=None, display_name=None, *args, **kwargs):
@@ -28,22 +29,51 @@ class Printer(printcore):
 
         self.name = printer_name if printer_name else self.port
         self.display_name = display_name
-        self.current_file = None
+        self.current_queue_item_id = None  # ID of the queue item being printed
+        self.current_queue_item_name = None  # Name of the queue item being printed
         self.start_time = time.time() # meh just want to have a default value
         self.total_paused_duration = 0
         self.pause_start_time = None
         self.bed_clear = True
 
-    def prepare_gcode(self, filename):
+        self.printing = False
+        self.paused = False
+
+    def is_printing(self):
+        return self.printing or self.paused
+
+    def prepare_gcode_from_queue_item(self, queue_item_id, queue_manager):
+        """Prepare gcode from a queue item"""
+        from .file_manager import queue_manager as default_queue_manager
+        qm = queue_manager or default_queue_manager
+        
+        queue_item = qm.get_queue_item_by_id(queue_item_id)
+        if not queue_item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Queue item {queue_item_id} not found",
+            )
+        
+        if queue_item.status != "todo":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Queue item {queue_item_id} is not in 'todo' status (current: {queue_item.status})",
+            )
+
         folder = utils.GCODEFOLDER
-        filepath = os.path.join(folder, filename)
+        filepath = os.path.join(folder, queue_item.file_path)
         if not os.path.exists(filepath):
             raise HTTPException(
                 status_code=404,
-                detail=f"File {filename} not found in {folder}",
+                detail=f"File {queue_item.file_path} not found in {folder}",
             )
 
-        self.current_file = filename
+        self.current_queue_item_id = queue_item_id
+        self.current_queue_item_name = queue_item.file_name
+        
+        # Mark the item as being printed
+        qm.mark_print_started(queue_item_id, self.name)
+        
         gcode = [i.strip() for i in open(filepath).readlines() if i.strip()]
         gcode = gcoder.LightGCode(gcode)
         return gcode
@@ -61,19 +91,27 @@ class Printer(printcore):
 
     def _endcb(self):
         if not self.paused:
-            self._reset_print_timing()
+            queue_manager.update_queue_item_status(
+                self.current_queue_item_id, 
+                status="finished",
+                finished_at=datetime.now().isoformat()
+            )
+            
             if self.start_time is not None:
                 elapsed = self._get_actual_elapsed_time()
                 time_string = time.strftime("%H:%M:%S", time.gmtime(elapsed))
-                logger.info(f"Print {self.current_file} finished on {self.name} in {time_string}")
+                logger.info(f"Print finished on {self.name} in {time_string}")
             else:
-                logger.info(f"Print {self.current_file} finished on {self.name}")
+                logger.info(f"Print finished on {self.name}")
+
+            self._reset_print_timing()
         else:
             self.pause_start_time = time.time()
 
     def _reset_print_timing(self):
         self.start_time = None
-        self.current_file = None
+        self.current_queue_item_id = None
+        self.current_queue_item_name = None
         self.total_paused_duration = 0
         self.pause_start_time = None
 
@@ -135,12 +173,13 @@ class Printer(printcore):
             status=status,
             port=self.port,
             name=self.name,
-            display_name=self.display_name,
+            displayName=self.display_name,
             baud=self.baud,
             progress=percentage,
             timeElapsed=elapsed_time,
             timeRemaining=time_remaining,
-            currentFile=self.current_file,
+            currentQueueItem=self.current_queue_item_id,
+            currentQueueItemName=self.current_queue_item_name,
             bedClear=self.bed_clear,
             bedTemp=models.BedTemp(
                 current=self.bed_temp, target=self.bed_temp_target
@@ -171,6 +210,24 @@ class Printer(printcore):
             )
         self.bed_clear = True
         logger.info(f"Bed cleared for printer {self.name} on {self.port}")
+
+    def mark_current_print_failed(self, error_message: str = None):
+        """Mark the current print as failed in the queue"""
+        if self.current_queue_item_id:
+            from .file_manager import queue_manager
+            queue_manager.mark_print_failed(self.current_queue_item_id, error_message)
+            logger.info(f"Marked queue item {self.current_queue_item_id} as failed on printer {self.name}")
+        else:
+            logger.warning(f"No queue item to mark as failed for printer {self.name}")
+
+    def mark_current_print_finished(self):
+        """Mark the current print as finished in the queue"""
+        if self.current_queue_item_id:
+            from .file_manager import queue_manager
+            queue_manager.mark_print_finished(self.current_queue_item_id)
+            logger.info(f"Marked queue item {self.current_queue_item_id} as finished on printer {self.name}")
+        else:
+            logger.warning(f"No queue item to mark as finished for printer {self.name}")
 
     async def connect(self, port=None, baud=None, dtr=None):
         """Connect to the printer with the specified port and baud rate. waits until the printer is online."""

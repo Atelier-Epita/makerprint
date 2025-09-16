@@ -1,11 +1,47 @@
 import React from "react";
 import { RefreshCcw, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PrinterCard from "@/components/PrinterCard";
 import { usePrinters } from "@/hooks/usePrinters";
+import { useFileManager } from '@/hooks/useFileManager';
+import { usePrintQueue } from '@/hooks/usePrintQueue';
+import { usePrinterHandlers } from '@/hooks/usePrinterHandlers';
+import FilesAndQueueTabs from '@/components/printer/FilesAndQueueTabs';
+import PrinterCard from "@/components/PrinterCard";
+import Footer from '@/components/Footer';
+import { useQueueHandlers } from "@/hooks/useQueueHandlers";
 
 const Index = () => {
   const { printers, loading, error, refreshPrinters } = usePrinters();
+  const {
+      fileTree,
+      loading: filesLoading,
+      uploadFiles,
+      createFolder,
+      deleteItem,
+      renameItem,
+      moveItem
+  } = useFileManager();
+  const {
+      queue,
+      availableTags,
+      activeTagFilter,
+      loading: queueLoading,
+      addToQueue,
+      removeFromQueue,
+      reorderQueue,
+      applyTagFilter,
+      clearTagFilter,
+      startPrint,
+      markFailed,
+      markSuccessful,
+      retryItem
+  } = usePrintQueue();
+
+  // custom hooks for dispatch / choose printer prompt
+  const {
+      handleAddToQueue,
+      handleDispatchPrint,
+  } = useQueueHandlers(addToQueue, startPrint, printers);
 
   return (
       <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -36,20 +72,40 @@ const Index = () => {
           </div>
 
           {loading && <p>Chargement des imprimantes...</p>}
-          {error && <p className="text-red-500">Erreur : {error}</p>}
 
+          {/* Printers */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {printers.map((printer: any) => (
                 <PrinterCard key={printer.id || printer.name} printer={printer} />
             ))}
           </div>
 
-          <footer className="mt-16 mb-6 text-center">
-            <div className="w-24 h-1 mx-auto bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mb-4"></div>
-            <p className="text-sm text-gray-500">
-              MakerPrint - L'Atelier © 2025
-            </p>
-          </footer>
+          {/* Files and Queue Tabs */}
+          <FilesAndQueueTabs
+              fileTree={fileTree}
+              queue={queue}
+              availableTags={availableTags}
+              activeTagFilter={activeTagFilter}
+              filesLoading={filesLoading}
+              queueLoading={queueLoading}
+              onUpload={uploadFiles}
+              onCreateFolder={createFolder}
+              onDelete={deleteItem}
+              onRename={renameItem}
+              onMove={moveItem}
+              onAddToQueue={handleAddToQueue}
+              onPrintNow={undefined} // TODO: implement handlePrintNow for dispatch
+              onStartPrint={undefined} // TODO: implement handleDispatchPrint
+              onRemoveFromQueue={removeFromQueue}
+              onReorderQueue={reorderQueue}
+              onApplyTagFilter={applyTagFilter}
+              onClearTagFilter={clearTagFilter}
+              onMarkFailed={markFailed}
+              onMarkSuccessful={markSuccessful}
+              onRetryItem={retryItem}
+          />
+
+          <Footer />
         </div>
       </div>
   );
