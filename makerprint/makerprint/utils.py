@@ -105,6 +105,7 @@ async def auto_detect_baud(port, ser_timeout=1, timeout=5) -> int | bool:
             ser.flush()
 
             ser.write(b"M105\n")  # temperature report command, should output something like "T:200.0 /200.0 B:60.0 /60.0"
+            # ser.write(b"M155 S4\n")  # Set auto-report temperature every 4 seconds
 
             while asyncio.get_event_loop().time() < timeout_time:
                 line = ser.readline(100)

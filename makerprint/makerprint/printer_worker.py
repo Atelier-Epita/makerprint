@@ -6,7 +6,6 @@ import os
 import time
 import multiprocessing
 import signal
-import threading
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -53,9 +52,9 @@ class PrinterWorkerProcess:
         signal.signal(signal.SIGTERM, self._signal_handler)
         signal.signal(signal.SIGINT, self._signal_handler)
         
-        self.status_thread = None
         self.monitor_interval = monitor_interval or self.DEFAULT_MONITOR_INTERVAL
         self.preferred_baud = preferred_baud
+        self._last_status_update = 0
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -64,29 +63,12 @@ class PrinterWorkerProcess:
         if self.printer:
             self.printer.disconnect()
     
-    def _start_status_monitor(self):
-        """Start the status monitoring thread"""
-        self.status_thread = threading.Thread(target=self._status_monitor_loop, daemon=True)
-        self.status_thread.start()
-    
-    def _status_monitor_loop(self):
-        """Monitor and send status updates"""
-        while self.running:
-            try:
-                # Poll temperature if printer is connected
-                if self.printer and self.printer.online:
-                    try:
-                        self.printer.request_temperature_update()
-                    except Exception as e:
-                        self.logger.error(f"Error polling temperature: {e}")
-                
-                # Send status updates
-                self._send_status_update()
-                    
-            except Exception as e:
-                self.logger.error(f"Error in monitoring loop: {e}")
-            
-            time.sleep(self.monitor_interval)
+    def _on_temperature_update(self):
+        """Called when printer temperature is updated - triggers status update"""
+        current_time = time.time()
+        if current_time - self._last_status_update >= 1.0:
+            self._send_status_update()
+            self._last_status_update = current_time
     
     def _send_status_update(self):
         """Send status update to the status queue"""
@@ -126,7 +108,14 @@ class PrinterWorkerProcess:
             printer_config_data = printer_config.get_printer_by_name(self.printer_name)
             display_name = printer_config_data.get('display_name', self.printer_name) if printer_config_data else self.printer_name
             
-            self.printer = Printer(self.printer_port, baud=baud, printer_name=self.printer_name, display_name=display_name)
+            self.printer = Printer(
+                self.printer_port, 
+                baud=baud, 
+                printer_name=self.printer_name, 
+                display_name=display_name,
+                temp_update_callback=self._on_temperature_update
+            )
+            
             asyncio.run(self.printer.connect())
             
             self.logger.info(f"Connected to printer {self.printer_name} on {self.printer_port}")
@@ -330,9 +319,6 @@ class PrinterWorkerProcess:
     def run(self):
         """Main worker loop"""
         self.logger.info(f"Starting printer worker for {self.printer_name} on {self.printer_port}")
-        
-        # Start status monitoring
-        self._start_status_monitor()
         
         try:
             while self.running:

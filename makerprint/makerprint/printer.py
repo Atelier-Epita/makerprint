@@ -4,7 +4,7 @@ import time
 import asyncio
 from datetime import datetime
 
-from printrun.printcore import printcore
+from printrun.printcore import printcore, Callback
 from printrun import gcoder
 from fastapi import HTTPException
 
@@ -13,13 +13,14 @@ from .utils import logger
 from .file_manager import queue_manager
 
 class Printer(printcore):
-    def __init__(self, port, baud=None, printer_name=None, display_name=None, *args, **kwargs):
+    def __init__(self, port, baud=None, printer_name=None, display_name=None, temp_update_callback=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tempcb = self._tempcb
-        self.startcb = self._startcb
-        self.endcb = self._endcb
+        self.callback.temp = self._tempcb
+        self.callback.start = self._startcb
+        self.callback.end = self._endcb
 
         # status stuff
+        self.loud = os.getenv("LOUD", "false").lower() in ("1", "true", "yes")
         self.port = port
         self.baud = baud
         self.extruder_temp = 0 
@@ -29,6 +30,7 @@ class Printer(printcore):
 
         self.name = printer_name if printer_name else self.port
         self.display_name = display_name
+        self.temp_update_callback = temp_update_callback
         self.current_queue_item_id = None  # ID of the queue item being printed
         self.current_queue_item_name = None  # Name of the queue item being printed
         self.start_time = time.time() # meh just want to have a default value
@@ -80,6 +82,7 @@ class Printer(printcore):
 
     def _startcb(self, resuming=False):
         if not resuming:
+            self.send_now("M155 S4") # auto temp report
             self.start_time = time.time()
             self.total_paused_duration = 0
             self.pause_start_time = None
@@ -152,6 +155,12 @@ class Printer(printcore):
             setpoint = temps["B"][1]
             if setpoint:
                 self.bed_temp_target = float(setpoint)
+        
+        try:
+            if self.temp_update_callback:
+                self.temp_update_callback()
+        except Exception as e:
+            logger.error(f"Error in temperature update callback: {e}")
 
     def get_status(self):
         percentage = 0
@@ -188,15 +197,6 @@ class Printer(printcore):
                 current=self.extruder_temp, target=self.extruder_temp_target
             ),
         )
-
-    def request_temperature_update(self):
-        """Request a temperature update from the printer"""
-        if self.online:
-            try:
-                self.send_now("M105")
-            except Exception as e:
-                logger.error(f"Failed to request temperature update for {self.name}: {e}")
-                raise
 
     def disconnect(self):
         return super().disconnect()
